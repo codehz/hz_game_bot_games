@@ -187,7 +187,7 @@ defineCustomElement("game-stage", () => {
   let stopped = false;
 
   gameover_show.addEventListener("click", () =>
-    gameover_show.dispatchEvent(new CustomEvent("start", { bubbles: true }))
+    gameover_show.dispatchEvent(new CustomEvent("restart", { bubbles: true }))
   );
 
   async function gameover() {
@@ -313,6 +313,10 @@ Promise.all(Object.values(effects).map((x) => x.handle)).then(() => {
     content.addEventListener("start", () => {
       while (content.firstChild) content.removeChild(content.firstChild);
       content.appendChild(html`<game-stage />`);
+    });
+    content.addEventListener("restart", () => {
+      while (content.firstChild) content.removeChild(content.firstChild);
+      content.appendChild(html`<game-title />`);
     });
     return content;
   });
