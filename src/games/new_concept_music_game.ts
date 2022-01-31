@@ -178,15 +178,15 @@ customElements.define("game-cell", GameCell);
 
 defineCustomElement("game-stage", () => {
   const highscores = html`<div class="highscores" />`;
+  const restartbtn = html`<button>重新开始</button>`;
   const gameover_show = html`<div class="gameover">
     <span>游戏结束</span>
-    <button>重新开始</button>
-    ${highscores}
+    ${restartbtn} ${highscores}
   </div>`;
   let score = new NumberValue(0);
   let stopped = false;
 
-  gameover_show.addEventListener("click", () =>
+  restartbtn.addEventListener("click", () =>
     gameover_show.dispatchEvent(new CustomEvent("restart", { bubbles: true }))
   );
 
