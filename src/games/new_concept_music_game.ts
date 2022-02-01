@@ -82,7 +82,7 @@ document.head.appendChild(css`
     animation: blink 1s ease 0s infinite;
   }
   #game-stage > .stat {
-    z-index: 1;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -100,16 +100,20 @@ document.head.appendChild(css`
   }
   #game-stage > .gameover {
     display: none;
-    position: absolute;
+    position: fixed;
     inset: 0;
-    backdrop-filter: blur(10px);
-    background: #ffffffcc;
     flex-direction: column;
     gap: 8px;
     font-size: 200%;
     align-items: center;
     justify-content: center;
-  }
+    z-index: 1;
+    background-color: #ffffff;
+    opacity: 0.8;
+    background-image: radial-gradient(#000000 0.5px, transparent 0.5px), radial-gradient(#000000 0.5px, #ffffff 0.5px);
+    background-size: 20px 20px;
+    background-position: 0 0,10px 10px;
+}
   #game-stage > .gameover.show {
     display: flex;
   }
