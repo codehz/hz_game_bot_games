@@ -4,7 +4,7 @@ import * as index from "/js/index.js";
 
 const ver = new URL(import.meta.url).search.slice(1);
 
-const friendvername = { v2: "加强版" }[ver] ?? "";
+const friendvername = { v2: "加强版", inf: "无尽模式" }[ver] ?? "";
 
 class AudioLoader {
   audio: HTMLAudioElement;
@@ -227,7 +227,7 @@ defineCustomElement("game-stage", () => {
     }
   }
 
-  let timer_show = new NumberValue(20);
+  let timer_show = new NumberValue(200, (value) => (value / 10).toFixed(1));
   let timer = new AutoTimer(() => {
     if (stopped || paused) return;
     timer_show.value--;
@@ -235,7 +235,7 @@ defineCustomElement("game-stage", () => {
       effects.end.play();
       gameover();
     }
-  }, 1000);
+  }, 100);
 
   const cells = html`<div class="cells" />`;
 

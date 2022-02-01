@@ -17,14 +17,19 @@ customElements.define("keyboard-binding", KeyboardBinding);
 
 export class NumberValue extends HTMLElement {
   #value: number;
-  constructor(value: number = 0) {
+  #formatter: (value: number) => string;
+  constructor(
+    value: number = 0,
+    formatter: (value: number) => string = (n) => "" + n
+  ) {
     super();
-    this.innerText = "" + value;
+    this.innerText = formatter(value);
     this.#value = value;
+    this.#formatter = formatter;
   }
 
   set value(value: number) {
-    this.innerText = "" + value;
+    this.innerText = this.#formatter(value);
     this.#value = value;
   }
 
