@@ -1,19 +1,19 @@
 import html, { css, defineCustomElement } from "/js/html.js";
-import { KeyboardBinding, NumberValue, AutoTimer } from "/js/common.js";
+import { AutoTimer, KeyboardBinding, NumberValue } from "/js/common.js";
 import * as index from "/js/index.js";
 
 class AudioLoader {
   audio: HTMLAudioElement;
   #promise: Promise<void>;
   constructor(name: string) {
-    this.audio = html`<audio
-      preload="auto"
-      src=${`/assets/new_concept_music_game/${name}.mp3`}
-    />` as HTMLAudioElement;
+    this.audio = new Audio();
     this.#promise = new Promise((resolve, reject) => {
       this.audio.addEventListener("error", reject);
       this.audio.addEventListener("canplay", () => resolve());
     });
+    this.audio.preload = "auto";
+    this.audio.src = `/assets/new_concept_music_game/${name}.mp3`;
+    this.audio.load();
   }
 
   get handle() {
@@ -186,8 +186,12 @@ defineCustomElement("game-stage", () => {
   let score = new NumberValue(0);
   let stopped = false;
 
-  restartbtn.addEventListener("click", () =>
-    gameover_show.dispatchEvent(new CustomEvent("restart", { bubbles: true }))
+  restartbtn.addEventListener(
+    "click",
+    () =>
+      gameover_show.dispatchEvent(
+        new CustomEvent("restart", { bubbles: true }),
+      ),
   );
 
   async function gameover() {
@@ -196,10 +200,12 @@ defineCustomElement("game-stage", () => {
     try {
       const list = await index.score(score.value);
       list.sort((a, b) => a.position - b.position);
-      for (const {
-        score: hs,
-        user: { first_name, last_name },
-      } of list) {
+      for (
+        const {
+          score: hs,
+          user: { first_name, last_name },
+        } of list
+      ) {
         const name = first_name + (last_name ? " " + last_name : "");
         highscores.appendChild(html`<div>${hs} - ${name}</div>`);
       }
