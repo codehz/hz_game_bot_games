@@ -67,6 +67,12 @@ document.head.appendChild(css`
     overflow: hidden;
     position: relative;
   }
+  #game-stage > .cells {
+    will-change: transform;
+    contain: layout;
+    transform: translateY(calc((var(--distance) - 2) * 25vmin));
+    transition: transform linear 0.1s;
+  }
   #game-stage > .trackpad {
     align-items: center;
     justify-content: center;
@@ -128,12 +134,11 @@ document.head.appendChild(css`
     content: "加载高分榜中";
   }
   game-cell {
-    will-change: opacity transform;
     pointer-events: none;
     position: absolute;
     width: 25vmin;
     height: 25vmin;
-    transform: translate(calc(var(--x) * 25vmin), calc(var(--y) * 25vmin));
+    transform: translate(calc(var(--x) * 25vmin), calc(var(--y) * -25vmin));
     display: block;
     opacity: 1;
     transition: transform linear 0.1s, opacity ease 0.5s;
@@ -168,6 +173,10 @@ document.head.appendChild(css`
   }
   game-cell.hidden {
     opacity: 0;
+    transform: translate(
+      calc(var(--x) * 25vmin),
+      calc((var(--distance) - 5) * -25vmin)
+    );
   }
   game-cell.hidden::after {
     transform: scale(1);
@@ -237,7 +246,7 @@ class GameCell extends HTMLElement {
   #x: number;
   #y: number;
   #killed: boolean = false;
-  constructor(x: number, y: number = -1) {
+  constructor(x: number, y: number) {
     super();
     this.#x = x;
     this.#y = y;
@@ -257,11 +266,6 @@ class GameCell extends HTMLElement {
   }
   get killed() {
     return this.#killed;
-  }
-  move() {
-    if (!this.#killed && this.#y != 3) {
-      this.style.setProperty("--y", "" + ++this.#y);
-    }
   }
   kill() {
     if (!this.#killed) {
@@ -284,6 +288,7 @@ defineCustomElement("game-stage", () => {
   let score = new NumberValue(0);
   let paused = true;
   let stopped = false;
+  let distance = 1;
 
   restartbtn.addEventListener("click", () =>
     gameover_show.dispatchEvent(new CustomEvent("restart", { bubbles: true }))
@@ -318,18 +323,17 @@ defineCustomElement("game-stage", () => {
     }
   }, 100);
 
-  const cells = html`<div class="cells" />`;
+  const cells = html`<div class="cells" style="--distance: 0" />`;
 
   function click(track: number) {
     if (stopped) return;
     if (paused) timer.restart();
     paused = false;
     for (const e of [...cells.children] as GameCell[]) {
-      if (e.x == track && e.y == 3 && !e.killed) {
+      if (e.x == track && e.y == distance - 5 && !e.killed) {
         e.kill();
         track = -1;
       }
-      e.move();
     }
     if (track != -1) {
       effects.err.play();
@@ -342,7 +346,8 @@ defineCustomElement("game-stage", () => {
     effects.tap.play();
     score.value++;
     const x = (Math.random() * 4) | 0;
-    cells.appendChild(new GameCell(x));
+    cells.appendChild(new GameCell(x, distance++));
+    cells.style.setProperty("--distance", "" + distance);
   }
 
   const bindings = new KeyboardBinding(({ type, code }) => {
@@ -384,10 +389,12 @@ defineCustomElement("game-stage", () => {
     ${gameover_show} ${bindings}${timer}
   </div>`;
 
-  [...Array(5)].forEach((_, i) => {
+  [...Array(5)].forEach(() => {
     const x = (Math.random() * 4) | 0;
-    cells.appendChild(new GameCell(x, 3 - i));
+    cells.appendChild(new GameCell(x, distance++));
   });
+
+  cells.style.setProperty("--distance", "" + distance);
 
   stage.addEventListener("pointerdown", ({ target }) => {
     let track = +((target as HTMLElement).dataset?.x ?? -1);
