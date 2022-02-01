@@ -71,15 +71,14 @@ document.head.appendChild(css`
     align-items: center;
     justify-content: center;
     display: flex;
-    position: fixed;
+    position: absolute;
     inset: 0;
   }
   #game-stage > .trackpad > .track {
-    height: 100vh;
-    width: 25vmin;
+    flex: 1;
+    height: 100%;
   }
   #game-stage > .trackpad > .track.highlight {
-    height: 100vmin;
     background-color: #cc2307;
     animation: blink 1s ease 0s infinite;
   }
