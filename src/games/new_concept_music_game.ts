@@ -269,6 +269,10 @@ defineCustomElement("game-stage", () => {
         case "KeyK":
           click(3);
           break;
+        case "Enter":
+          if (stopped) {
+            restartbtn.click();
+          }
       }
     }
   });
@@ -303,10 +307,14 @@ defineCustomElement("game-stage", () => {
 });
 
 defineCustomElement("game-title", () => {
-  const startgame = html`<button>开始游戏</button>`;
-  startgame.addEventListener("click", (e) => {
+  const button = html`<button>开始游戏</button>`;
+  button.addEventListener("click", (e) => {
     e.preventDefault();
-    startgame.dispatchEvent(new CustomEvent("start", { bubbles: true }));
+    button.dispatchEvent(new CustomEvent("start", { bubbles: true }));
+  });
+
+  const binding = new KeyboardBinding(({ code, type }) => {
+    if (code == "Enter" && type == "keydown") button.click();
   });
   return html`<div class="game-title">
     <span class="text">
@@ -317,7 +325,7 @@ defineCustomElement("game-title", () => {
     <div class="kbd-list">
       ${"DFJK".split("").map((x) => html`<kbd>${x}</kbd>`)}
     </div>
-    ${startgame}
+    ${button}${binding}
   </div>`;
 });
 
