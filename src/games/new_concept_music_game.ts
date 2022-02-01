@@ -321,7 +321,7 @@ defineCustomElement("game-title", () => {
       ${"新概念音游".split("").map((x) => html`<span>${x}</span>`)}
     </span>
     <span class="description">从最底下的开始<br />看你能得多少分</span>
-    <span class="description">键盘快捷键</span>
+    <span class="description">触摸或者键盘操作</span>
     <div class="kbd-list">
       ${"DFJK".split("").map((x) => html`<kbd>${x}</kbd>`)}
     </div>
