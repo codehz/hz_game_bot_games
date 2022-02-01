@@ -69,12 +69,14 @@ document.head.appendChild(css`
   }
   #game-stage > .trackpad {
     align-items: center;
+    justify-content: center;
     display: flex;
     position: fixed;
     inset: 0;
   }
   #game-stage > .trackpad > .track {
     height: 100vh;
+    width: 25vmin;
   }
   #game-stage > .trackpad > .track.highlight {
     height: 100vmin;
@@ -125,9 +127,6 @@ document.head.appendChild(css`
   }
   #game-stage > .gameover > .highscores:empty::before {
     content: "加载高分榜中";
-  }
-  .track {
-    flex: 1;
   }
   game-cell {
     will-change: opacity transform;
