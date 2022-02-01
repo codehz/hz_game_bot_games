@@ -43,6 +43,17 @@ const effects = {
 };
 
 document.head.appendChild(css`
+  @keyframes blink {
+    0% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
   body {
     display: flex;
     width: 100vw;
@@ -57,9 +68,18 @@ document.head.appendChild(css`
     position: relative;
   }
   #game-stage > .trackpad {
+    align-items: center;
     display: flex;
     position: fixed;
     inset: 0;
+  }
+  #game-stage > .trackpad > .track {
+    height: 100vh;
+  }
+  #game-stage > .trackpad > .track.highlight {
+    height: 100vmin;
+    background-color: #cc2307;
+    animation: blink 1s ease 0s infinite;
   }
   #game-stage > .stat {
     z-index: 1;
@@ -313,6 +333,9 @@ defineCustomElement("game-stage", () => {
     if (track != -1) {
       effects.err.play();
       gameover();
+      document
+        .querySelector(`.track[data-x="${track}"]`)
+        ?.classList.add("highlight");
       return;
     }
     effects.tap.play();
