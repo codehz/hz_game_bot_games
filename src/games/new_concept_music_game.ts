@@ -108,10 +108,8 @@ document.head.appendChild(css`
     align-items: center;
     justify-content: center;
     z-index: 1;
-    background-color: #ffffff;
-    opacity: 0.8;
-    background-image: radial-gradient(#000000 0.5px, transparent 0.5px),
-      radial-gradient(#000000 0.5px, #ffffff 0.5px);
+    background-image: radial-gradient(#000c 0.5px, transparent 0.5px),
+      radial-gradient(#000c 0.5px, #fffc 0.5px);
     background-size: 20px 20px;
     background-position: 0 0, 10px 10px;
   }
