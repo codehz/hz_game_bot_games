@@ -179,9 +179,10 @@ customElements.define("game-cell", GameCell);
 defineCustomElement("game-stage", () => {
   const highscores = html`<div class="highscores" />`;
   const restartbtn = html`<button>重新开始</button>`;
+  const sharebtn = html`<button>分享排行</button>`;
   const gameover_show = html`<div class="gameover">
     <span>游戏结束</span>
-    ${restartbtn} ${highscores}
+    ${restartbtn}${sharebtn}${highscores}
   </div>`;
   let score = new NumberValue(0);
   let paused = true;
@@ -193,6 +194,10 @@ defineCustomElement("game-stage", () => {
       gameover_show.dispatchEvent(
         new CustomEvent("restart", { bubbles: true }),
       ),
+  );
+  sharebtn.addEventListener(
+    "click",
+    () => TelegramGameProxy.shareScore(),
   );
 
   async function gameover() {

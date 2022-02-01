@@ -11,6 +11,13 @@ export type GameHighScore = {
   score: number;
 };
 export let score: (score: number) => Promise<GameHighScore[]>;
+
+declare global {
+  const TelegramGameProxy: {
+    shareScore(): void;
+  }
+}
+
 if (location.pathname.includes("mock")) {
   score = async () => [];
 } else {
