@@ -16,16 +16,19 @@ function fetchGL(canvas: HTMLCanvasElement) {
     alpha: false,
     antialias: true,
     depth: false,
-    desynchronized: true,
     powerPreference: "high-performance",
     premultipliedAlpha: false,
     preserveDrawingBuffer: false,
     stencil: false,
   })! as GL;
-  mixinPrototype(gl, gl.getExtension("ANGLE_instanced_arrays")!);
-  mixinPrototype(gl, gl.getExtension("OES_vertex_array_object")!);
-  mixinPrototype(gl, gl.getExtension("OES_element_index_uint")!);
-  Object.assign(globalThis, { gl });
+  try {
+    mixinPrototype(gl, gl.getExtension("ANGLE_instanced_arrays")!);
+    mixinPrototype(gl, gl.getExtension("OES_vertex_array_object")!);
+    mixinPrototype(gl, gl.getExtension("OES_element_index_uint")!);
+  } catch (e) {
+    alert("检测到不支持的浏览器");
+    throw e;
+  }
   return gl;
 }
 
@@ -34,21 +37,26 @@ export class Camera extends EmitterElement<{
   click: Vector;
   reset: void;
 }> {
-  #canvas: HTMLCanvasElement;
-  #gl: GL;
+  #canvas: HTMLCanvasElement = document.createElement("canvas");
+  #gl: GL = fetchGL(this.#canvas);
   #origin: Vector = [0, 0];
   #size: number = 30;
   #matrix!: mat3;
   #glmatrix!: mat3;
   #loop_handle!: number;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor() {
     super();
-    this.#canvas = canvas;
-    this.#gl = fetchGL(canvas);
+    Object.assign(this.#canvas.style, {
+      display: "block",
+      position: "absolute",
+      width: "100vw",
+      height: "100vh",
+    });
   }
 
   connectedCallback() {
+    document.body.appendChild(this.#canvas);
     window.addEventListener("resize", this.#fit);
     this.#canvas.addEventListener("click", this.#click);
     this.#canvas.addEventListener("webglcontextrestored", this.#restored);
@@ -62,6 +70,7 @@ export class Camera extends EmitterElement<{
     window.removeEventListener("webglcontextrestored", this.#restored);
     this.#canvas.removeEventListener("webglcontextlost", this.#lost);
     this.#lost();
+    this.#canvas.remove();
   }
 
   get gl() {
@@ -84,8 +93,8 @@ export class Camera extends EmitterElement<{
     );
   }
   #fit = () => {
-    this.#canvas.width = this.#canvas.clientWidth * devicePixelRatio;
-    this.#canvas.height = this.#canvas.clientHeight * devicePixelRatio;
+    this.#canvas.width = window.innerWidth * devicePixelRatio;
+    this.#canvas.height = window.innerHeight * devicePixelRatio;
     this.gl.viewport(0, 0, this.#canvas.width, this.#canvas.height);
     this.#recalc();
   };
@@ -118,9 +127,18 @@ class Resource extends HTMLElement {
   #camera: Camera | null = null;
   #gl?: GL;
 
-  connectedCallback() {
+  #reset = () => {
     this.#camera = this.closest("gfx-camera");
     this.#gl = this.#camera?.gl;
+  };
+
+  connectedCallback() {
+    this.camera.on("reset", this.#reset);
+    this.#reset();
+  }
+
+  disconnectedCallback() {
+    this.camera.off("reset", this.#reset);
   }
 
   protected get camera(): Camera {
@@ -178,6 +196,7 @@ export class Program<
   }
 
   disconnectedCallback() {
+    super.disconnectedCallback();
     this.camera.off("reset", this.#reset);
     if (this.#program) {
       this.gl.deleteProgram(this.#program);
@@ -272,6 +291,7 @@ export class Buffer extends Resource {
   }
 
   disconnectedCallback() {
+    super.disconnectedCallback();
     this.camera.off("reset", this.#reset);
     if (this.#buffer) {
       this.gl.deleteBuffer(this.#buffer);
@@ -318,11 +338,13 @@ export class VertexArray extends Resource {
   }
 
   connectedCallback() {
+    super.connectedCallback();
     this.camera.on("reset", this.#reset);
     this.#reset();
   }
 
   disconnectedCallback() {
+    super.disconnectedCallback();
     this.camera.off("reset", this.#reset);
     if (this.#vao) {
       this.gl.deleteVertexArrayOES(this.#vao);
