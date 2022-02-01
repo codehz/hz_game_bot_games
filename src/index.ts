@@ -34,6 +34,6 @@ if (location.pathname.includes("mock")) {
     return JSON.parse(atob(token.split(".")[1]));
   }
   const { game } = parseJwt(data) as { game: string };
-  const [name, ver] = game.split("__", 2);
-  import(`./games/${name}.js?${ver}`);
+  const [name, ver] = game.split(/_game_?/, 2);
+  import(`./games/${name}_game.js?${ver ?? ""}`);
 }

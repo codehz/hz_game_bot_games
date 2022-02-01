@@ -2,6 +2,10 @@ import html, { css, defineCustomElement } from "/js/html.js";
 import { AutoTimer, KeyboardBinding, NumberValue } from "/js/common.js";
 import * as index from "/js/index.js";
 
+const ver = new URL(import.meta.url).search.slice(1);
+
+const friendvername = { v2: "加强版" }[ver] ?? "";
+
 class AudioLoader {
   audio: HTMLAudioElement;
   #promise: Promise<void>;
@@ -122,9 +126,21 @@ document.head.appendChild(css`
     gap: 10px;
   }
   .game-title > .text {
+    position: relative;
     display: inline-flex;
     font-size: 200%;
     gap: 8px;
+  }
+  .game-title > .text > .ver:not(:empty) {
+    position: absolute;
+    font-size: 60%;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 2px solid black;
+    background-color: white;
+    right: -47px;
+    top: -11px;
+    transform: rotate(40deg);
   }
   .game-title > button {
     padding: 4px 8px;
@@ -188,17 +204,10 @@ defineCustomElement("game-stage", () => {
   let paused = true;
   let stopped = false;
 
-  restartbtn.addEventListener(
-    "click",
-    () =>
-      gameover_show.dispatchEvent(
-        new CustomEvent("restart", { bubbles: true }),
-      ),
+  restartbtn.addEventListener("click", () =>
+    gameover_show.dispatchEvent(new CustomEvent("restart", { bubbles: true }))
   );
-  sharebtn.addEventListener(
-    "click",
-    () => TelegramGameProxy.shareScore(),
-  );
+  sharebtn.addEventListener("click", () => TelegramGameProxy.shareScore());
 
   async function gameover() {
     stopped = true;
@@ -206,12 +215,10 @@ defineCustomElement("game-stage", () => {
     try {
       const list = await index.score(score.value);
       list.sort((a, b) => a.position - b.position);
-      for (
-        const {
-          score: hs,
-          user: { first_name, last_name },
-        } of list.slice(0, 5)
-      ) {
+      for (const {
+        score: hs,
+        user: { first_name, last_name },
+      } of list.slice(0, 5)) {
         const name = first_name + (last_name ? " " + last_name : "");
         highscores.appendChild(html`<div>${hs} - ${name}</div>`);
       }
@@ -319,6 +326,7 @@ defineCustomElement("game-title", () => {
   return html`<div class="game-title">
     <span class="text">
       ${"新概念音游".split("").map((x) => html`<span>${x}</span>`)}
+      ${friendvername && html`<span class="ver">${friendvername}</span>`}
     </span>
     <span class="description">从最底下的开始<br />看你能得多少分</span>
     <span class="description">触摸或者键盘操作</span>
