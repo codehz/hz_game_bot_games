@@ -5,6 +5,11 @@ import * as index from "/js/index.js";
 const ver = new URL(import.meta.url).search.slice(1);
 
 const friendvername = { v2: "加强版", inf: "无尽模式" }[ver] ?? "";
+const specialrule =
+  {
+    v2: "增加可选长条滑块\n同时按住以获取时间奖励",
+    inf: "无时间限制\n但是需要保持5秒内平均TPS\n标准将会逐渐提高",
+  }[ver] ?? "";
 
 class AudioLoader {
   audio: HTMLAudioElement;
@@ -141,6 +146,34 @@ document.head.appendChild(css`
     right: -47px;
     top: -11px;
     transform: rotate(40deg);
+  }
+  .game-title > .description {
+    text-align: center;
+  }
+  .game-title > .specialrule {
+    display: inline-block;
+    background-color: black;
+    color: white;
+    padding: 4px 8px;
+    position: relative;
+  }
+  .game-title > .specialrule::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-top: 8px solid white;
+    border-right: 8px solid black;
+    width: 0;
+  }
+  .game-title > .specialrule::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border-bottom: 8px solid white;
+    border-left: 8px solid black;
+    width: 0;
   }
   .game-title > button {
     padding: 4px 8px;
@@ -333,6 +366,11 @@ defineCustomElement("game-title", () => {
     <div class="kbd-list">
       ${"DFJK".split("").map((x) => html`<kbd>${x}</kbd>`)}
     </div>
+    ${specialrule &&
+    html`<span
+      class="description specialrule"
+      html=${specialrule.replace(/\n/g, "<br>")}
+    />`}
     ${button}${binding}
   </div>`;
 });
