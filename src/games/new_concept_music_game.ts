@@ -109,7 +109,7 @@ document.head.appendChild(css`
     background-position: center;
     background-repeat: no-repeat;
     opacity: 1;
-    transition: all ease 0.2s;
+    transition: all linear 0.1s;
   }
   game-cell.hidden {
     background-size: 100%;
