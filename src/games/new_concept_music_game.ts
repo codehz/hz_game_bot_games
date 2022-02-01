@@ -210,7 +210,7 @@ defineCustomElement("game-stage", () => {
         const {
           score: hs,
           user: { first_name, last_name },
-        } of list
+        } of list.slice(0, 5)
       ) {
         const name = first_name + (last_name ? " " + last_name : "");
         highscores.appendChild(html`<div>${hs} - ${name}</div>`);
