@@ -288,7 +288,7 @@ defineCustomElement("game-stage", () => {
     cells.appendChild(new GameCell(x, 3 - i));
   });
 
-  stage.addEventListener("click", ({ target }) => {
+  stage.addEventListener("pointerdown", ({ target }) => {
     let track = +((target as HTMLElement).dataset?.x ?? -1);
     if (track == -1) return;
     click(track);
