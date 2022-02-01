@@ -252,11 +252,6 @@ class GameCell extends HTMLElement {
     this.#y = y;
     this.style.setProperty("--x", "" + x);
     this.style.setProperty("--y", "" + y);
-    this.addEventListener("transitionend", () => {
-      if (this.classList.contains("hidden")) {
-        this.remove();
-      }
-    });
   }
   get y() {
     return this.#y;
@@ -271,6 +266,7 @@ class GameCell extends HTMLElement {
     if (!this.#killed) {
       this.#killed = true;
       this.classList.add("hidden");
+      setTimeout(() => this.remove(), 1000);
     }
   }
 }
