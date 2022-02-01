@@ -110,10 +110,11 @@ document.head.appendChild(css`
     z-index: 1;
     background-color: #ffffff;
     opacity: 0.8;
-    background-image: radial-gradient(#000000 0.5px, transparent 0.5px), radial-gradient(#000000 0.5px, #ffffff 0.5px);
+    background-image: radial-gradient(#000000 0.5px, transparent 0.5px),
+      radial-gradient(#000000 0.5px, #ffffff 0.5px);
     background-size: 20px 20px;
-    background-position: 0 0,10px 10px;
-}
+    background-position: 0 0, 10px 10px;
+  }
   #game-stage > .gameover.show {
     display: flex;
   }
@@ -363,6 +364,7 @@ defineCustomElement("game-stage", () => {
         case "KeyK":
           click(3);
           break;
+        case "Space":
         case "Enter":
           if (stopped) {
             restartbtn.click();
@@ -408,7 +410,8 @@ defineCustomElement("game-title", () => {
   });
 
   const binding = new KeyboardBinding(({ code, type }) => {
-    if (code == "Enter" && type == "keydown") button.click();
+    if ((code == "Enter" || code == "Space") && type == "keydown")
+      button.click();
   });
   return html`<div class="game-title">
     <span class="text">
