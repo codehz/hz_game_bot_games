@@ -15,7 +15,7 @@ export let score: (score: number) => Promise<GameHighScore[]>;
 declare global {
   const TelegramGameProxy: {
     shareScore(): void;
-  }
+  };
 }
 
 if (location.pathname.includes("mock")) {
@@ -34,5 +34,6 @@ if (location.pathname.includes("mock")) {
     return JSON.parse(atob(token.split(".")[1]));
   }
   const { game } = parseJwt(data) as { game: string };
-  import(`./games/${game}.js`);
+  const [name, ver] = game.split("__", 2);
+  import(`./games/${name}.js?${ver}`);
 }
