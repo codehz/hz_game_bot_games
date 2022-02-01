@@ -50,5 +50,11 @@ export class AutoTimer extends HTMLElement {
   disconnectedCallback() {
     clearInterval(this.#handle);
   }
+  restart() {
+    if (this.ownerDocument) {
+      this.disconnectedCallback();
+      this.connectedCallback();
+    }
+  }
 }
 customElements.define("auto-timer", AutoTimer);

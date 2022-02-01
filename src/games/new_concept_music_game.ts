@@ -184,6 +184,7 @@ defineCustomElement("game-stage", () => {
     ${restartbtn} ${highscores}
   </div>`;
   let score = new NumberValue(0);
+  let paused = true;
   let stopped = false;
 
   restartbtn.addEventListener(
@@ -216,7 +217,7 @@ defineCustomElement("game-stage", () => {
 
   let timer_show = new NumberValue(20);
   let timer = new AutoTimer(() => {
-    if (stopped) return;
+    if (stopped || paused) return;
     timer_show.value--;
     if (timer_show.value == 0) {
       effects.end.play();
@@ -228,6 +229,8 @@ defineCustomElement("game-stage", () => {
 
   function click(track: number) {
     if (stopped) return;
+    if (paused) timer.restart();
+    paused = false;
     for (const e of [...cells.children] as GameCell[]) {
       if (e.x == track && e.y == 3 && !e.killed) {
         e.kill();
