@@ -124,16 +124,15 @@ document.head.appendChild(css`
     inset: 0;
   }
   game-cell::before {
-    inset: 2%;
     clip-path: polygon(
-      10% 0,
-      0 10%,
-      0 90%,
-      10% 100%,
-      90% 100%,
-      100% 90%,
-      100% 10%,
-      90% 0
+      15% 5%,
+      5% 15%,
+      5% 85%,
+      15% 95%,
+      85% 95%,
+      95% 85%,
+      95% 15%,
+      85% 5%
     );
     background: #0001;
   }
@@ -150,7 +149,7 @@ document.head.appendChild(css`
     opacity: 0;
   }
   game-cell.hidden::after {
-    transform: scale(1.0);
+    transform: scale(1);
   }
   .game-title {
     display: flex;
