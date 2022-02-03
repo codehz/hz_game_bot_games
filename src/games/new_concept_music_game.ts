@@ -441,7 +441,7 @@ defineCustomElement("game-stage", () => {
                 gameover();
                 return;
               case "BONUS":
-                timer_show.value += 2 * e.length;
+                timer_show.value += e.length * e.length;
                 effects.up.play();
                 break;
               case "EAT":
