@@ -391,7 +391,7 @@ defineCustomElement("game-stage", () => {
   let timer = new AutoTimer(() => {
     if (stopped || paused) return;
     timer_show.value--;
-    if (timer_show.value == 0) {
+    if (timer_show.value <= 0) {
       effects.end.play();
       gameover();
     }
