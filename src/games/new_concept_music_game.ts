@@ -403,7 +403,7 @@ defineCustomElement("game-stage", () => {
 
   if (ver == "v2") {
     spawnCell = () => {
-      const dist = [1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 4, 5, 6];
+      const dist = [1, 1, 1, 1, 1, 1, 2, 3, 3, 4, 4, 4, 5, 5, 6, 6, 6, 6];
       for (let i = 0; i < 4; i++) {
         if (traffic[i] > 0) traffic[i]--;
       }
