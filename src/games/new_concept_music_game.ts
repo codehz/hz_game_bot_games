@@ -32,7 +32,7 @@ class AudioLoader {
   play() {
     this.audio.pause();
     this.audio.currentTime = 0;
-    this.audio.play();
+    this.audio.play().catch(() => {});
   }
 }
 
@@ -40,6 +40,7 @@ const effects = {
   end: new AudioLoader("effect_end"),
   err: new AudioLoader("effect_err"),
   tap: new AudioLoader("effect_tap"),
+  up: new AudioLoader("effect_up"),
 };
 
 document.head.appendChild(css`
@@ -60,6 +61,8 @@ document.head.appendChild(css`
     height: 100vh;
     justify-content: center;
     align-items: center;
+
+    --box-background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M15 5L5 15v70l10 10h70l10-10V15L85 5z' fill='%230001'/%3E%3C/svg%3E");
   }
   #game-stage {
     width: 100vmin;
@@ -81,10 +84,15 @@ document.head.appendChild(css`
     inset: 0;
   }
   #game-stage > .trackpad > .track {
+    display: block;
     flex: 1;
     height: 100%;
+    transition: all ease 0.1s;
   }
-  #game-stage > .trackpad > .track.highlight {
+  #game-stage > .trackpad > .track.active {
+    background-color: #0001;
+  }
+  #game-stage > .trackpad.highlight > .track.active {
     background-color: #cc2307;
     animation: blink 1s ease 0s infinite;
   }
@@ -147,22 +155,17 @@ document.head.appendChild(css`
   game-cell::after {
     content: "";
     position: absolute;
-    inset: 0;
   }
   game-cell::before {
-    clip-path: polygon(
-      15% 5%,
-      5% 15%,
-      5% 85%,
-      15% 95%,
-      85% 95%,
-      95% 85%,
-      95% 15%,
-      85% 5%
-    );
-    background: #0001;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--length) * 25vmin);
+    background-image: var(--box-background);
+    background-size: 25vmin;
   }
   game-cell::after {
+    inset: 0;
     will-change: transform;
     transition: all ease 0.5s;
     background-image: url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M41.42 7.309s3.885-1.515 3.56 2.164c-.107 1.515-1.078 6.818-1.834 12.553l-2.59 16.99s-.216 2.489-2.159 2.922c-1.942.432-4.856-1.515-5.396-1.948-.432-.325-8.094-5.195-10.792-7.575-.756-.65-1.62-1.948.108-3.463L33.648 18.13c1.295-1.298 2.59-4.328-2.806-.649l-15.11 10.28s-1.727 1.083-4.964.109l-7.016-2.165s-2.59-1.623 1.835-3.246c10.793-5.086 24.068-10.28 35.831-15.15z' fill='%23cc2307'/%3E%3C/svg%3E");
@@ -171,14 +174,17 @@ document.head.appendChild(css`
     background-repeat: no-repeat;
     transform: scale(0.4);
   }
-  game-cell.hidden {
+  game-cell.killed {
+    opacity: 0;
+  }
+  game-cell.eat {
     opacity: 0;
     transform: translate(
       calc(var(--x) * 25vmin),
       calc((var(--distance) - 5) * -25vmin)
     );
   }
-  game-cell.hidden::after {
+  game-cell.eat::after {
     transform: scale(1);
   }
   .game-title {
@@ -242,16 +248,22 @@ document.head.appendChild(css`
   }
 `);
 
+type CellResult = "NORMAL" | "EAT" | "KILLED" | "BONUS";
+
 class GameCell extends HTMLElement {
   #x: number;
   #y: number;
-  #killed: boolean = false;
-  constructor(x: number, y: number) {
+  #length: number;
+  #eat: number = 0;
+  constructor(x: number, y: number, length: number = 1) {
     super();
     this.#x = x;
     this.#y = y;
+    this.#length = length;
     this.style.setProperty("--x", "" + x);
     this.style.setProperty("--y", "" + y);
+    this.style.setProperty("--length", "" + length);
+    this.style.setProperty("--eat", "" + 0);
   }
   get y() {
     return this.#y;
@@ -259,19 +271,82 @@ class GameCell extends HTMLElement {
   get x() {
     return this.#x;
   }
-  get killed() {
-    return this.#killed;
+  get length() {
+    return this.#length;
   }
-  kill() {
-    if (!this.#killed) {
-      this.#killed = true;
-      this.classList.add("hidden");
-      setTimeout(() => this.remove(), 1000);
+  get killed() {
+    return this.#length == this.#eat;
+  }
+  #kill(force = false): CellResult {
+    if (force) {
+      this.classList.add("killed");
+    } else {
+      this.classList.add("eat");
+    }
+    setTimeout(() => this.remove(), 1000);
+    if (force) {
+      if (this.#length == 1 || this.#eat == 0) {
+        return "KILLED";
+      } else {
+        return "EAT";
+      }
+    } else if (this.#eat == this.#length && this.#length > 1) {
+      return "BONUS";
+    } else {
+      return "EAT";
+    }
+  }
+  action(state: boolean) {
+    if (this.#length > this.#eat) {
+      if (state) {
+        if (++this.#eat == this.#length) {
+          return this.#kill();
+        } else if (this.#eat == 1) {
+          return "EAT";
+        } else {
+          return "NORMAL";
+        }
+      } else {
+        return this.#kill(true);
+      }
     }
   }
 }
 
 customElements.define("game-cell", GameCell);
+
+class GameTracks extends HTMLElement {
+  #tracks: HTMLElement[];
+  constructor() {
+    super();
+    this.classList.add("trackpad");
+    this.#tracks = [...Array(4)].map(
+      (_, i) => html`<div class="track" data-x=${i} />`
+    );
+    this.#tracks.forEach((el) => this.appendChild(el));
+  }
+
+  toggle(idx: number, state: boolean) {
+    const list = this.#tracks[idx].classList;
+    if (list.contains("active") == state) return true;
+    list.toggle("active", state);
+    return false;
+  }
+
+  get(idx: number): boolean {
+    return this.#tracks[idx].classList.contains("active");
+  }
+
+  get cache() {
+    return this.#tracks.map((x) => x.classList.contains("active"));
+  }
+
+  gameover() {
+    this.classList.add("highlight");
+  }
+}
+
+customElements.define("game-tracks", GameTracks);
 
 defineCustomElement("game-stage", () => {
   const highscores = html`<div class="highscores" />`;
@@ -281,6 +356,8 @@ defineCustomElement("game-stage", () => {
     <span>游戏结束</span>
     ${restartbtn}${sharebtn}${highscores}
   </div>`;
+  const tracks = new GameTracks();
+  const traffic = [0, 0, 0, 0];
   let score = new NumberValue(0);
   let paused = true;
   let stopped = false;
@@ -293,6 +370,7 @@ defineCustomElement("game-stage", () => {
 
   async function gameover() {
     stopped = true;
+    tracks.gameover();
     gameover_show.classList.add("show");
     try {
       const list = await index.score(score.value);
@@ -321,49 +399,89 @@ defineCustomElement("game-stage", () => {
 
   const cells = html`<div class="cells" style="--distance: 0" />`;
 
-  function click(track: number) {
+  let spawnCell: () => void;
+
+  if (ver == "v2") {
+    spawnCell = () => {
+      const dist = [1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 4, 5, 6];
+      for (let i = 0; i < 4; i++) {
+        if (traffic[i] > 0) traffic[i]--;
+      }
+      while (true) {
+        const pos = (Math.random() * 4) | 0;
+        if (traffic[pos] > 0) continue;
+        const allowLong = traffic.filter((x) => x == 0).length > 1;
+        const length = allowLong ? dist[(Math.random() * dist.length) | 0] : 1;
+        cells.appendChild(new GameCell(pos, distance++, length));
+        traffic[pos] = length;
+        break;
+      }
+    };
+  } else {
+    spawnCell = () => {
+      const pos = (Math.random() * 4) | 0;
+      cells.appendChild(new GameCell(pos, distance++, 1));
+    };
+  }
+
+  function click(track: number, down: boolean) {
     if (stopped) return;
     if (paused) timer.restart();
     paused = false;
-    for (const e of [...cells.children] as GameCell[]) {
-      if (e.x == track && e.y == distance - 5 && !e.killed) {
-        e.kill();
-        track = -1;
+    if (tracks.toggle(track, down)) return;
+    if (down) {
+      const cache = tracks.cache;
+      for (const e of [...cells.children] as GameCell[]) {
+        if (e.y <= distance - 5 && !e.killed) {
+          const result = e.action(cache[e.x]);
+          if (result) {
+            switch (result) {
+              case "KILLED":
+                effects.err.play();
+                gameover();
+                return;
+              case "BONUS":
+                timer_show.value += 5 * e.length;
+                effects.up.play();
+                break;
+              case "EAT":
+                score.value++;
+              case "NORMAL":
+                effects.tap.play();
+                break;
+            }
+          } else if (cache[e.x]) {
+            effects.err.play();
+            gameover();
+            return;
+          }
+        }
       }
+      spawnCell();
+      cells.style.setProperty("--distance", "" + distance);
     }
-    if (track != -1) {
-      effects.err.play();
-      gameover();
-      document
-        .querySelector(`.track[data-x="${track}"]`)
-        ?.classList.add("highlight");
-      return;
-    }
-    effects.tap.play();
-    score.value++;
-    const x = (Math.random() * 4) | 0;
-    cells.appendChild(new GameCell(x, distance++));
-    cells.style.setProperty("--distance", "" + distance);
   }
 
-  const bindings = new KeyboardBinding(({ type, code }) => {
-    if (type == "keydown") {
+  const bindings = new KeyboardBinding(({ type, code, repeat }) => {
+    if (repeat) return;
+    if (type == "keydown" || type == "keyup") {
+      const down = type == "keydown";
       switch (code) {
         case "KeyD":
-          click(0);
+          click(0, down);
           break;
         case "KeyF":
-          click(1);
+          click(1, down);
           break;
         case "KeyJ":
-          click(2);
+          click(2, down);
           break;
         case "KeyK":
-          click(3);
+          click(3, down);
           break;
         case "Space":
         case "Enter":
-          if (stopped) {
+          if (stopped && down) {
             restartbtn.click();
           }
       }
@@ -371,13 +489,7 @@ defineCustomElement("game-stage", () => {
   });
 
   const stage = html`<div id="game-stage">
-    ${cells}
-    <div class="trackpad">
-      <div class="track" data-x="0" />
-      <div class="track" data-x="1" />
-      <div class="track" data-x="2" />
-      <div class="track" data-x="3" />
-    </div>
+    ${cells} ${tracks}
     <div class="stat">
       <div class="timer">时间：${timer_show}</div>
       <div class="score">分数：${score}</div>
@@ -395,7 +507,13 @@ defineCustomElement("game-stage", () => {
   stage.addEventListener("pointerdown", ({ target }) => {
     let track = +((target as HTMLElement).dataset?.x ?? -1);
     if (track == -1) return;
-    click(track);
+    click(track, true);
+  });
+
+  stage.addEventListener("pointerup", ({ target }) => {
+    let track = +((target as HTMLElement).dataset?.x ?? -1);
+    if (track == -1) return;
+    click(track, false);
   });
 
   return stage;
