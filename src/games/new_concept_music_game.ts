@@ -443,6 +443,7 @@ defineCustomElement("game-stage", () => {
               case "BONUS":
                 timer_show.value += (e.length * e.length) / 2;
                 effects.up.play();
+                tracks.toggle(e.x, false);
                 break;
               case "EAT":
                 score.value++;
