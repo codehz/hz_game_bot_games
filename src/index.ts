@@ -1,3 +1,5 @@
+import { reqeust, getData } from "./utils.js";
+
 export type User = {
   id: number;
   first_name: string;
@@ -21,19 +23,8 @@ declare global {
 if (location.pathname.includes("mock")) {
   score = async () => [];
 } else {
-  score = async (score: number) => {
-    const res = await fetch("/", { method: "SCORE", body: "" + score });
-    if (res.status != 200) throw new Error("invalid score");
-    return await res.json();
-  };
-  const data = new URL(location.href).searchParams.get("data");
-  if (!data) {
-    throw new String("invalid");
-  }
-  function parseJwt(token: string) {
-    return JSON.parse(atob(token.split(".")[1]));
-  }
-  const { game } = parseJwt(data) as { game: string };
+  score = (score: number) => reqeust("SCORE", score + "");
+  const { game } = getData<{ game: string }>();
   const [name, ver] = game.split(/_game_?/, 2);
   import(`./games/${name}_game.js?${ver ?? ""}`);
 }

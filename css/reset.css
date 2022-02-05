@@ -5,6 +5,7 @@ body {
   touch-action: manipulation;
 }
 
+admin-panel,
 game-content {
   position: absolute;
   top: 50%;
