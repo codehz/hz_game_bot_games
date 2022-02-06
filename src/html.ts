@@ -8,7 +8,10 @@ function toDash(name: string) {
 
 type ChildrenType = null | boolean | number | HTMLElement | ChildrenType[];
 
-function processChildren(target: HTMLElement, children: ChildrenType[] = []) {
+function processChildren(
+  target: HTMLElement | DocumentFragment,
+  children: ChildrenType[] = []
+) {
   for (const child of children) {
     if (child == null || typeof child == "boolean") continue;
     if (Array.isArray(child)) processChildren(target, child);
@@ -22,6 +25,11 @@ export function ce(
   attr: Record<string, any>,
   ...children: ChildrenType[]
 ) {
+  if (name == "") {
+    const ret = document.createDocumentFragment();
+    processChildren(ret, children);
+    return ret;
+  }
   const ret = typeof name == "string" ? document.createElement(name) : name;
   for (const key in attr) {
     const value = attr[key];
@@ -46,37 +54,6 @@ export function ce(
   if (typeof children == "string") ret.innerHTML = children;
   else processChildren(ret, children);
   return ret;
-}
-
-export function attrs<T extends object>(
-  target: HTMLElement,
-  base: T = {} as any
-): T & Record<string, string> {
-  return new Proxy(base, {
-    get(o: any, key: string) {
-      return key in o ? o[key] : target.getAttribute(key);
-    },
-  });
-}
-
-export function defineCustomElement(
-  name: string,
-  cb: (
-    this: HTMLElement,
-    args: { html: string; self: HTMLElement } & Record<string, string>
-  ) => HTMLElement | void
-) {
-  customElements.define(
-    name,
-    class extends HTMLElement {
-      connectedCallback() {
-        const html = this.innerHTML.trim();
-        this.innerHTML = "";
-        const ret = cb.call(this, attrs(this, { html, self: this }));
-        if (ret) this.replaceWith(ret);
-      }
-    }
-  );
 }
 
 export default htm.bind(ce);

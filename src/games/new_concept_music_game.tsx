@@ -1,4 +1,6 @@
-import html, { css, defineCustomElement } from "/js/html.js";
+import { defineCustomElement } from "/js/ce.js";
+import jsx from "/js/jsx.js";
+import { css } from "/js/html.js";
 import { AutoTimer, KeyboardBinding, NumberValue } from "/js/common.js";
 import * as index from "/js/index.js";
 
@@ -320,9 +322,9 @@ class GameTracks extends HTMLElement {
   constructor() {
     super();
     this.classList.add("trackpad");
-    this.#tracks = [...Array(4)].map(
-      (_, i) => html`<div class="track" data-x=${i} />`
-    );
+    this.#tracks = [...Array(4)].map((_, i) => (
+      <div class="track" data-x={i} />
+    ));
     this.#tracks.forEach((el) => this.appendChild(el));
   }
 
@@ -349,16 +351,20 @@ class GameTracks extends HTMLElement {
 customElements.define("game-tracks", GameTracks);
 
 defineCustomElement("game-stage", () => {
-  const highscores = html`<div class="highscores" />`;
-  const restartbtn = html`<button>重新开始</button>`;
-  const sharebtn = html`<button>分享排行</button>`;
-  const gameover_show = html`<div class="gameover">
-    <span>游戏结束</span>
-    ${restartbtn}${sharebtn}${highscores}
-  </div>`;
+  const highscores = <div class="highscores" />;
+  const restartbtn = <button>重新开始</button>;
+  const sharebtn = <button>分享排行</button>;
+  const gameover_show = (
+    <div class="gameover">
+      <span>游戏结束</span>
+      {restartbtn}
+      {sharebtn}
+      {highscores}
+    </div>
+  );
   const tracks = new GameTracks();
   const traffic = [0, 0, 0, 0];
-  let score = new NumberValue(0);
+  let score = (<NumberValue value={0} />) as NumberValue;
   let paused = true;
   let stopped = false;
   let distance = 1;
@@ -380,24 +386,34 @@ defineCustomElement("game-stage", () => {
         user: { first_name, last_name },
       } of list.slice(0, 5)) {
         const name = first_name + (last_name ? " " + last_name : "");
-        highscores.appendChild(html`<div>${hs} - ${name}</div>`);
+        highscores.appendChild(
+          <div>
+            {hs} - {name}
+          </div>
+        );
       }
     } catch {
       alert("分数上传失败");
     }
   }
 
-  let timer_show = new NumberValue(200, (value) => (value / 10).toFixed(1));
-  let timer = new AutoTimer(() => {
-    if (stopped || paused) return;
-    timer_show.value--;
-    if (timer_show.value <= 0) {
-      effects.end.play();
-      gameover();
-    }
-  }, 100);
+  let timer_show = new NumberValue({
+    value: 200,
+    formatter: (value) => (value / 10).toFixed(1),
+  });
+  let timer = new AutoTimer({
+    handler: () => {
+      if (stopped || paused) return;
+      timer_show.value--;
+      if (timer_show.value <= 0) {
+        effects.end.play();
+        gameover();
+      }
+    },
+    interval: 100,
+  });
 
-  const cells = html`<div class="cells" style="--distance: 0" />`;
+  const cells = <div class="cells" style="--distance: 0" />;
 
   let spawnCell: () => void;
 
@@ -489,14 +505,18 @@ defineCustomElement("game-stage", () => {
     }
   });
 
-  const stage = html`<div id="game-stage">
-    ${cells} ${tracks}
-    <div class="stat">
-      <div class="timer">时间：${timer_show}</div>
-      <div class="score">分数：${score}</div>
+  const stage = (
+    <div id="game-stage">
+      {cells} {tracks}
+      <div class="stat">
+        <div class="timer">时间：{timer_show}</div>
+        <div class="score">分数：{score}</div>
+      </div>
+      {gameover_show}
+      {bindings}
+      {timer}
     </div>
-    ${gameover_show} ${bindings}${timer}
-  </div>`;
+  );
 
   [...Array(5)].forEach(() => {
     const x = (Math.random() * 4) | 0;
@@ -521,7 +541,7 @@ defineCustomElement("game-stage", () => {
 });
 
 defineCustomElement("game-title", () => {
-  const button = html`<button>开始游戏</button>`;
+  const button = <button>开始游戏</button>;
   button.addEventListener("click", (e) => {
     e.preventDefault();
     button.dispatchEvent(new CustomEvent("start", { bubbles: true }));
@@ -531,35 +551,51 @@ defineCustomElement("game-title", () => {
     if ((code == "Enter" || code == "Space") && type == "keydown")
       button.click();
   });
-  return html`<div class="game-title">
-    <span class="text">
-      ${"新概念音游".split("").map((x) => html`<span>${x}</span>`)}
-      ${friendvername && html`<span class="ver">${friendvername}</span>`}
-    </span>
-    <span class="description">从最底下的开始<br />看你能得多少分</span>
-    <span class="description">触摸或者键盘操作</span>
-    <div class="kbd-list">
-      ${"DFJK".split("").map((x) => html`<kbd>${x}</kbd>`)}
+  return (
+    <div class="game-title">
+      <span class="text">
+        {"新概念音游".split("").map((x) => (
+          <span>{x}</span>
+        ))}
+        {friendvername && <span class="ver">{friendvername}</span>}
+      </span>
+      <span class="description">
+        从最底下的开始
+        <br />
+        看你能得多少分
+      </span>
+      <span class="description">触摸或者键盘操作</span>
+      <div class="kbd-list">
+        {"DFJK".split("").map((x) => (
+          <kbd>{x}</kbd>
+        ))}
+      </div>
+      {specialrule && (
+        <span
+          class="description specialrule"
+          html={specialrule.replace(/\n/g, "<br>")}
+        />
+      )}
+      {button}
+      {binding}
     </div>
-    ${specialrule &&
-    html`<span
-      class="description specialrule"
-      html=${specialrule.replace(/\n/g, "<br>")}
-    />`}
-    ${button}${binding}
-  </div>`;
+  );
 });
 
 Promise.all(Object.values(effects).map((x) => x.handle)).then(() => {
   defineCustomElement("game-content", () => {
-    const content = html`<div class="game-content"><game-title /></div>`;
+    const content = (
+      <div class="game-content">
+        <game-title />
+      </div>
+    );
     content.addEventListener("start", () => {
       while (content.firstChild) content.removeChild(content.firstChild);
-      content.appendChild(html`<game-stage />`);
+      content.appendChild(<game-stage />);
     });
     content.addEventListener("restart", () => {
       while (content.firstChild) content.removeChild(content.firstChild);
-      content.appendChild(html`<game-title />`);
+      content.appendChild(<game-title />);
     });
     return content;
   });
