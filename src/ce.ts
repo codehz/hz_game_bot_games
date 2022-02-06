@@ -91,7 +91,8 @@ export abstract class CustomHTMLElement extends HTMLElement {
     });
     const obj: Record<string, string | null> = {};
     for (const key in this[$observed]) {
-      obj[key] = this.getAttribute(key);
+      const value = this.getAttribute(key);
+      if (value) obj[key] = value;
     }
     this[$mounts]?.forEach((name) => (this as any)[name](obj));
   }

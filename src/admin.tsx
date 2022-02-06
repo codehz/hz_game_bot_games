@@ -19,7 +19,9 @@ const { user_name } = getData() as { user_name: string };
 @customElement("log-panel-page")
 @shadow(
   <simple-router id="router" value="loading">
-    <div data-value="loading" id="loading">Loading...</div>
+    <div data-value="loading" id="loading">
+      Loading...
+    </div>
     <div data-value="ok" id="container">
       <span>会话</span>
       <span>时间</span>
@@ -27,7 +29,9 @@ const { user_name } = getData() as { user_name: string };
       <span>分数</span>
       <div id="content" />
     </div>
-    <div data-value="error" id="error">Permission denied</div>
+    <div data-value="error" id="error">
+      Permission denied
+    </div>
   </simple-router>
 )
 @css`
@@ -91,9 +95,66 @@ export class LogPanelPage extends CustomHTMLElement {
   }
 }
 
+@customElement("query-input")
+@shadow(
+  <>
+    <label id="label" for="input"></label>
+    <input id="input" />
+    <button id="clear">clear</button>
+  </>
+)
+@css`
+  :host {
+    display: block;
+  }
+  label,
+  input,
+  button {
+    display: block;
+  }
+`
+export class QueryInput extends CustomHTMLElement {
+  @id("label")
+  label!: HTMLLabelElement;
+
+  @id("input")
+  input!: HTMLInputElement;
+
+  value: string = "";
+
+  @listen("input", "#input", true)
+  update() {
+    this.value = this.input.value;
+  }
+
+  @listen("click", "#clear", true)
+  clear() {
+    this.value = this.input.value = "";
+  }
+
+  @mount
+  @watch("label", "type", "placeholder")
+  init({
+    label = "input",
+    type = "text",
+    placeholder,
+  }: Record<"label" | "type" | "placeholder", string | undefined>) {
+    console.log(type);
+    this.label.textContent = label;
+    this.input.type = type;
+    if (placeholder) this.input.placeholder = placeholder;
+  }
+}
+
 @customElement("log-panel")
 @shadow(
   <>
+    <form id="queryform">
+      <QueryInput name="session" label="session id" />
+      <QueryInput name="user" label="user id" />
+      <QueryInput name="min_time" label="min time" type="datetime-local" />
+      <QueryInput name="max_time" label="max time" type="datetime-local" />
+    </form>
     <log-panel-page id="content" page="0" />
     <span class="button" id="prev">
       上一页
@@ -106,6 +167,7 @@ export class LogPanelPage extends CustomHTMLElement {
 )
 @css`
   :host {
+    display: block;
     user-select: none;
   }
 
