@@ -2,6 +2,9 @@ import {
   css,
   customElement,
   CustomHTMLElement,
+  id,
+  listen,
+  listen_at,
   mount,
   prop,
   select,
@@ -57,7 +60,13 @@ export class AutoTimer extends HTMLElement {
   #handle: number = -1;
   #interval: number;
   #handler: () => void;
-  constructor({ handler, interval }: { handler: () => void; interval: number; }) {
+  constructor({
+    handler,
+    interval,
+  }: {
+    handler: () => void;
+    interval: number;
+  }) {
     super();
     this.#handler = handler;
     this.#interval = interval;
@@ -91,6 +100,156 @@ export class ObjectMapping<T extends {}> extends CustomHTMLElement {
         <span field={key}>{value}</span>
       ))
     );
+  }
+}
+
+@customElement("x-button")
+@shadow(<slot></slot>)
+@css`
+  :host {
+    display: inline-block;
+    padding: 5px 20px;
+    background: var(--fgcolor);
+    color: var(--bgcolor);
+  }
+
+  :host(:hover) {
+    box-shadow: inset 0 -2px 0 var(--hover-color, var(--bgcolor));
+  }
+  :host(:focus-visible) {
+    outline: 2px dashed var(--fgcolor);
+    outline-offset: 2px;
+  }
+
+  :host(:active) {
+    background: var(--bgcolor);
+    color: var(--fgcolor);
+    --hover-color: var(--fgcolor);
+  }
+`
+export class StyledButton extends CustomHTMLElement {
+  constructor() {
+    super();
+    this.tabIndex = 0;
+  }
+}
+
+@customElement("dialog-form")
+@shadow(
+  <dialog id="dialog">
+    <div class="container">
+      <h2 id="title"></h2>
+      <slot />
+      <div class="bottombar">
+        <StyledButton id="cancel">取消</StyledButton>
+        <StyledButton id="confirm">确认</StyledButton>
+      </div>
+    </div>
+  </dialog>
+)
+@css`
+  dialog::backdrop {
+    background: #000c;
+  }
+  dialog {
+    background: var(--theme-color);
+    border: none;
+    padding: 0;
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    max-width: unset;
+    box-sizing: border-box;
+    --fgcolor: white;
+    --bgcolor: var(--theme-color);
+  }
+
+  h2 {
+    color: var(--fgcolor);
+    margin: 0;
+    padding-bottom: 10px;
+  }
+
+  .container {
+    margin: 20px auto;
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
+    width: calc(100% - 80px);
+    max-width: 600px;
+  }
+
+  .bottombar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+`
+export class DialogForm extends CustomHTMLElement {
+  @id("dialog")
+  dialog!: HTMLElement & {
+    readonly returnValue: string;
+    showModal(): void;
+    close(value: string): void;
+  };
+
+  @id("title")
+  title_el!: HTMLElement;
+
+  @id("form")
+  form!: HTMLFormElement;
+
+  #resolver?: {
+    resolve: () => void;
+    reject: (e: Error) => void;
+  };
+
+  @listen_at("click", "x-button")
+  on_click(e: MouseEvent) {
+    e.preventDefault();
+    this.dialog.close((e.target! as HTMLElement).id);
+  }
+
+  @listen_at("close", "#dialog")
+  on_close(e: MouseEvent) {
+    if (this.#resolver) {
+      if (this.dialog.returnValue == "confirm") {
+        this.#resolver.resolve();
+      } else {
+        this.#resolver.reject(new Error(this.dialog.returnValue));
+      }
+      this.#resolver = undefined;
+    }
+  }
+
+  @listen("click", "#dialog")
+  on_clickoutside(e: MouseEvent) {
+    const rect = this.dialog.getBoundingClientRect();
+
+    const clickedInDialog =
+      rect.top <= e.clientY &&
+      e.clientY <= rect.top + rect.height &&
+      rect.left <= e.clientX &&
+      e.clientX <= rect.left + rect.width;
+
+    if (!clickedInDialog) this.dialog.close("cancel");
+  }
+
+  @watch("title")
+  @mount
+  update_title({ title }: { title: string }) {
+    this.title_el.textContent = title;
+  }
+
+  open() {
+    this.dialog.showModal();
+    return new Promise<void>((resolve, reject) => {
+      this.#resolver = { resolve, reject };
+    });
+  }
+
+  close(value: string) {
+    this.dialog.close(value);
   }
 }
 

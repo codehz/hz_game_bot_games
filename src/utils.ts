@@ -4,7 +4,10 @@ export async function reqeust<R>(method: string, body: string) {
   return (await res.json()) as R;
 }
 
-export function api(endpoint: `log/${number}`): Promise<
+export function api(
+  endpoint: `log/${number}`,
+  opt: { query?: string }
+): Promise<
   {
     session_id: number;
     time: number;
@@ -12,10 +15,23 @@ export function api(endpoint: `log/${number}`): Promise<
     score: number;
   }[]
 >;
-export async function api<R>(endpoint: string, body?: string) {
+export async function api<R>(
+  endpoint: string,
+  {
+    body,
+    method,
+    query,
+  }: {
+    body?: string;
+    method?: "GET" | "PUT" | "DELETE";
+    query?: URLSearchParams | string;
+  } = {}
+) {
+  let path = `/api/${endpoint}`;
+  if (query) path += "?" + query;
   const res = await fetch(
-    `/api/${endpoint}`,
-    body ? { method: "PUT", body } : {}
+    path,
+    body ? { method: method ?? "PUT", body } : { method }
   );
   if (res.status != 200) throw new Error("request failed");
   return (await res.json()) as R;

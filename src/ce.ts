@@ -5,32 +5,36 @@ const $css = Symbol("css");
 const $observed = Symbol("observed");
 const $mounts = Symbol("mounts");
 const $unmounts = Symbol("unmounts");
+const $host_listeners = Symbol("host_listeners");
 const $listeners = Symbol("listeners");
-const $shadow_listeners = Symbol("shadow_listeners");
+const $closest_listeners = Symbol("closest_listeners");
+const $direct_listeners = Symbol("direct_listeners");
 
 export abstract class CustomHTMLElement extends HTMLElement {
-  [$selector]?: Map<
-    string,
-    { selector: string; shadow: boolean; all: boolean }
-  >;
+  [$selector]?: Map<string, { selector: string; all: boolean } | string>;
   [$template]?: Node;
   [$shadow]?: Node;
-  [$css]?: CSSStyleSheet;
+  [$css]?: CSSStyleSheet[];
   [$observed]?: Record<string, Array<string | symbol>>;
   [$mounts]?: string[];
   [$unmounts]?: string[];
+  [$host_listeners]?: { name: string; event: string }[];
   [$listeners]?: Record<string, { selector?: string; name: string }[]>;
-  [$shadow_listeners]?: Record<string, { selector?: string; name: string }[]>;
-  #listeners = new Map<string, EventListener>();
-  #shadow_listeners = new Map<string, EventListener>();
+  [$closest_listeners]?: { name: string; event: string; selector: string }[];
+  [$direct_listeners]?: { name: string; event: string; selector: string }[];
+  #listeners: { node: Node; event: string; listener: EventListener }[] = [];
 
   constructor() {
     super();
     this.removeAttribute("placeholder");
+
+    this[$host_listeners]?.forEach(({ name, event }) =>
+      this.addEventListener(event, (this as any)[name].bind(this))
+    );
   }
 
-  attributeChangedCallback(name: string, _old: string, value: string) {
-    if (!this.isConnected) return;
+  attributeChangedCallback(name: string, old: string, value: string) {
+    if (!this.isConnected || old == value) return;
     const watchers = this[$observed]?.[name];
     if (watchers)
       for (const watcher of watchers) {
@@ -45,28 +49,23 @@ export abstract class CustomHTMLElement extends HTMLElement {
     if (template) {
       this.replaceChildren(template.cloneNode(true));
     }
-    const listeners = this[$listeners];
-    if (listeners)
-      for (const [event, arr] of Object.entries(listeners)) {
-        const callback = (e: Event) => {
-          for (const { selector, name } of arr) {
-            if (!selector || !(e.target as HTMLElement).matches(selector))
-              continue;
-            (this as any)[name](e);
-          }
-        };
-        this.#listeners.set(event, callback);
-        this.addEventListener(event, callback);
+    this[$closest_listeners]?.forEach(({ name, event, selector }) => {
+      const target = this.closest(selector);
+      if (target) {
+        const listener = (this as any)[name].bind(this);
+        target.addEventListener(event, listener);
+        this.#listeners.push({ node: target, event, listener });
       }
+    });
     const shadow = this[$shadow];
     if (shadow) {
       const root = this.shadowRoot ?? this.attachShadow({ mode: "open" });
       root.replaceChildren(shadow.cloneNode(true));
       const css = this[$css];
       if (css) {
-        root.adoptedStyleSheets = [css];
+        root.adoptedStyleSheets = css;
       }
-      const listeners = this[$shadow_listeners];
+      const listeners = this[$listeners];
       if (listeners)
         for (const [event, arr] of Object.entries(listeners)) {
           const callback = (e: Event) => {
@@ -76,19 +75,32 @@ export abstract class CustomHTMLElement extends HTMLElement {
               (this as any)[name](e);
             }
           };
-          this.#shadow_listeners.set(event, callback);
+          this.#listeners.push({ node: root, event, listener: callback });
           root.addEventListener(event, callback);
         }
+
+      this[$direct_listeners]?.forEach(({ name, event, selector }) => {
+        const callback = (e: Event) => {
+          (this as any)[name](e);
+        };
+        for (const el of root.querySelectorAll(selector)) {
+          el.addEventListener(event, callback);
+        }
+      });
+
+      this[$selector]?.forEach((target, name) => {
+        if (typeof target == "string") {
+          (this as any)[name] = root.getElementById(target);
+        } else {
+          const { selector, all } = target;
+          if (all) {
+            (this as any)[name] = [...root.querySelectorAll(selector)];
+          } else {
+            (this as any)[name] = root.querySelector(selector);
+          }
+        }
+      });
     }
-    this[$selector]?.forEach(({ selector, shadow, all }, name) => {
-      const root = shadow ? this.shadowRoot : this;
-      if (!root) return;
-      if (all) {
-        (this as any)[name] = [...root.querySelectorAll(selector)];
-      } else {
-        (this as any)[name] = root.querySelector(selector);
-      }
-    });
     const obj: Record<string, string | null> = {};
     for (const key in this[$observed]) {
       const value = this.getAttribute(key);
@@ -100,13 +112,11 @@ export abstract class CustomHTMLElement extends HTMLElement {
   disconnectedCallback() {
     const setting = this[$unmounts];
     setting?.forEach((name) => (this as any)[name]());
-    this.#listeners.forEach((f, k) => this.removeEventListener(k, f));
-    this.#listeners.clear();
-    if (this.#shadow_listeners.size) {
-      const root = this.shadowRoot!;
-      this.#shadow_listeners.forEach((f, k) => root.removeEventListener(k, f));
-      this.#shadow_listeners.clear();
-    }
+    this.#listeners.forEach(({ node, event, listener }) =>
+      node.removeEventListener(event, listener)
+    );
+    this.#listeners = [];
+    this.shadowRoot?.replaceChildren();
   }
 }
 
@@ -117,7 +127,7 @@ export const customElement =
       const observed = cls.prototype[$observed] ?? {};
       (cls as any)["observedAttributes"] = Object.keys(observed);
     }
-    console.log("register", name, cls.name);
+    console.log("%cregister%c %s %s", "background: black; color: white;", "background: unset; color: unset;", name, cls.name);
     customElements.define(name, cls);
     return cls;
   };
@@ -134,13 +144,13 @@ export const shadow =
     cls.prototype[$shadow] = content;
   };
 
-export const css = (strings: TemplateStringsArray, ...values: any[]) => {
+export function css(strings: TemplateStringsArray, ...values: any[]) {
   const style = new CSSStyleSheet();
   style.replaceSync(String.raw(strings, ...values));
   return <T extends CustomHTMLElement>(cls: new (...args: any[]) => T) => {
-    cls.prototype[$css] = style;
+    cls.prototype[$css] = [...(cls.prototype[$css] ?? []), style];
   };
-};
+}
 
 export function defineCustomElement<S extends string = string>(
   name: string,
@@ -207,16 +217,12 @@ export const watch =
 export const select =
   (
     selector: string,
-    {
-      shadow = false,
-      all = false,
-      dynamic = false,
-    }: { shadow?: boolean; all?: boolean; dynamic?: boolean } = {}
+    { all = false, dynamic = false }: { all?: boolean; dynamic?: boolean } = {}
   ) =>
   <T extends CustomHTMLElement>(target: T, key: string) => {
     if (!dynamic) {
       const selectors = target[$selector] ?? (target[$selector] = new Map());
-      selectors.set(key, { selector, shadow, all });
+      selectors.set(key, { selector, all });
     } else {
       Object.defineProperty(target, key, {
         configurable: false,
@@ -232,7 +238,7 @@ export const id =
   (id: string) =>
   <T extends CustomHTMLElement>(target: T, key: string) => {
     const selectors = target[$selector] ?? (target[$selector] = new Map());
-    selectors.set(key, { selector: `#${id}`, shadow: true, all: false });
+    selectors.set(key, id);
   };
 
 export const mount = <T extends CustomHTMLElement>(target: T, key: string) => {
@@ -249,10 +255,30 @@ export const unmount = <T extends CustomHTMLElement>(
 };
 
 export const listen =
-  (event: string, selector?: string, shadow: boolean = false) =>
+  (event: string, selector?: string) =>
   <T extends CustomHTMLElement>(target: T, key: string) => {
-    const m = shadow ? $shadow_listeners : $listeners;
-    let list = target[m] ?? (target[m] = {});
+    let list = target[$listeners] ?? (target[$listeners] = {});
     const listeners = list[event] ?? [];
     list[event] = [...listeners, { selector, name: key }];
+  };
+
+export const listen_host =
+  (event: string) =>
+  <T extends CustomHTMLElement>(target: T, key: string) => {
+    let list = target[$host_listeners] ?? [];
+    target[$host_listeners] = [...list, { event, name: key }];
+  };
+
+export const listen_closest =
+  (event: string, selector: string) =>
+  <T extends CustomHTMLElement>(target: T, key: string) => {
+    let list = target[$closest_listeners] ?? [];
+    target[$closest_listeners] = [...list, { event, selector, name: key }];
+  };
+
+export const listen_at =
+  (event: string, selector: string) =>
+  <T extends CustomHTMLElement>(target: T, key: string) => {
+    let list = target[$direct_listeners] ?? [];
+    target[$direct_listeners] = [...list, { event, selector, name: key }];
   };

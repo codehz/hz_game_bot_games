@@ -9,10 +9,11 @@ import {
   id,
   listen,
   prop,
+  select,
 } from "./ce.js";
 import jsx from "/js/jsx.js";
 import "/js/common.js";
-import { SimpleRouter } from "/js/common.js";
+import { DialogForm, SimpleRouter } from "/js/common.js";
 
 const { user_name } = getData() as { user_name: string };
 
@@ -63,6 +64,11 @@ const { user_name } = getData() as { user_name: string };
   }
 `
 export class LogPanelPage extends CustomHTMLElement {
+  static format = new Intl.DateTimeFormat(undefined, {
+    dateStyle: "short",
+    timeStyle: "medium",
+  });
+
   @id("router")
   private router!: SimpleRouter;
 
@@ -72,18 +78,27 @@ export class LogPanelPage extends CustomHTMLElement {
   @prop()
   page!: string;
 
-  @watch("page")
+  @prop()
+  query!: string;
+
+  @watch("page", "query")
   @mount
-  async updatePage({ page }: { page: string }) {
+  async updatePage({
+    page = this.page,
+    query = this.query,
+  }: {
+    page?: string;
+    query?: string;
+  }) {
     try {
       this.router.value = "loading";
-      const list = await api(`log/${+page}`);
+      const list = await api(`log/${+page}`, { query });
       this.router.value = "ok";
       this.content.replaceChildren(
         ...list.map(({ session_id, time, user_id, score }) => (
           <>
             <span>{session_id}</span>
-            <span>{new Date(time).toISOString()}</span>
+            <span>{LogPanelPage.format.format(time)}</span>
             <span>{user_id}</span>
             <span>{score}</span>
           </>
@@ -98,19 +113,94 @@ export class LogPanelPage extends CustomHTMLElement {
 @customElement("query-input")
 @shadow(
   <>
+    <input placeholder=" " tabindex="0" id="input" />
     <label id="label" for="input"></label>
-    <input id="input" />
-    <button id="clear">clear</button>
+    <button id="clear"></button>
   </>
 )
 @css`
   :host {
-    display: block;
+    position: relative;
+    display: grid;
+    grid-template:
+      "label label"
+      "input clear" / auto 30px;
+    color: var(--fgcolor);
   }
   label,
   input,
   button {
     display: block;
+    color: var(--fgcolor);
+  }
+  label {
+    grid-area: label;
+    font-size: 50%;
+    padding: 0 4px;
+    width: fit-content;
+    z-index: 2;
+    position: relative;
+    background: var(--bgcolor);
+  }
+  input {
+    grid-area: input;
+    padding: 4px 8px;
+    border: none;
+    background: none;
+    position: relative;
+  }
+  button {
+    grid-area: clear;
+    border: none;
+    background: none;
+    position: relative;
+    cursor: pointer;
+  }
+  button::before,
+  button::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(var(--deg));
+    width: 12px;
+    height: 2px;
+    background: var(--fgcolor);
+  }
+  button::before {
+    --deg: 45deg;
+  }
+  button::after {
+    --deg: -45deg;
+  }
+  :focus-visible {
+    outline: 2px solid;
+  }
+  :host(:not([type*="time"])) label {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 100%;
+    transition: all ease 0.2s;
+    pointer-events: none;
+  }
+  :host(:not([type*="time"])) input:focus + label,
+  :host(:not([type*="time"])) input:not(:placeholder-shown) + label {
+    top: -8px;
+    left: 0;
+    font-size: 50%;
+  }
+
+  ::-webkit-calendar-picker-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0;
   }
 `
 export class QueryInput extends CustomHTMLElement {
@@ -120,42 +210,43 @@ export class QueryInput extends CustomHTMLElement {
   @id("input")
   input!: HTMLInputElement;
 
-  value: string = "";
+  @prop()
+  name!: string;
 
-  @listen("input", "#input", true)
-  update() {
-    this.value = this.input.value;
+  get value() {
+    return this.input.value;
+  }
+  set value(val) {
+    this.input.value = val;
   }
 
-  @listen("click", "#clear", true)
+  @listen("click", "#clear")
   clear() {
-    this.value = this.input.value = "";
+    this.value = "";
   }
 
   @mount
-  @watch("label", "type", "placeholder")
+  @watch("label", "type")
   init({
     label = "input",
     type = "text",
-    placeholder,
   }: Record<"label" | "type" | "placeholder", string | undefined>) {
-    console.log(type);
     this.label.textContent = label;
     this.input.type = type;
-    if (placeholder) this.input.placeholder = placeholder;
   }
 }
 
 @customElement("log-panel")
 @shadow(
   <>
-    <form id="queryform">
-      <QueryInput name="session" label="session id" />
-      <QueryInput name="user" label="user id" />
-      <QueryInput name="min_time" label="min time" type="datetime-local" />
-      <QueryInput name="max_time" label="max time" type="datetime-local" />
-    </form>
-    <log-panel-page id="content" page="0" />
+    <DialogForm id="queryform" title="过滤器设置">
+      <QueryInput name="session_id" label="会话ID" type="number" />
+      <QueryInput name="user_id" label="用户ID" type="number" />
+      <QueryInput name="min_time" label="开始时间" type="datetime-local" />
+      <QueryInput name="max_time" label="结束时间" type="datetime-local" />
+    </DialogForm>
+    <button id="filter">打开过滤器</button>
+    <log-panel-page id="content" page="0" query="" />
     <span class="button" id="prev">
       上一页
     </span>
@@ -182,14 +273,32 @@ export class LogPanel extends CustomHTMLElement {
   @id("number")
   page_number!: HTMLElement;
 
-  @listen("click", "#prev", true)
+  @id("queryform")
+  queryform!: DialogForm;
+
+  @select("query-input", { all: true })
+  data!: QueryInput[];
+
+  @listen("click", "#filter")
+  async open_filter() {
+    try {
+      await this.queryform.open();
+      this.content.query = new URLSearchParams(
+        this.data
+          .filter(({ value }) => value)
+          .map(({ name, value }) => [name, value])
+      ).toString();
+    } catch {}
+  }
+
+  @listen("click", "#prev")
   go_prev() {
     this.page = Math.max(0, this.page - 1);
     this.page_number.textContent = this.page + 1 + "";
     this.content.page = this.page + "";
   }
 
-  @listen("click", "#next", true)
+  @listen("click", "#next")
   go_next() {
     this.page++;
     this.page_number.textContent = this.page + 1 + "";
@@ -207,7 +316,6 @@ export class LogPanel extends CustomHTMLElement {
 @css`
   :host {
     display: block;
-    background: red;
   }
 `
 export class AdminPanel extends CustomHTMLElement {}
