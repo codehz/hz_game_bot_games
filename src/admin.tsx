@@ -112,7 +112,9 @@ export class LogPanelPage extends CustomHTMLElement {
       this.content.replaceChildren(
         ...list.map((item) => (
           <tr class="line" _={{ item }}>
-            <td>{item.session_id}</td>
+            <td>
+              {item.game}({item.session_id})
+            </td>
             <td>{item.user_id}</td>
             <td>{item.score}</td>
             <td>{LogPanelPage.format.format(item.time)}</td>

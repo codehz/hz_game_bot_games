@@ -1,4 +1,8 @@
 export type LogInfo = {
+  game: string;
+  inline_message_id?: string;
+  chat_id?: number;
+  message_id?: number;
   session_id: number;
   time: number;
   user_id: number;
