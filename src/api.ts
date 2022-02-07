@@ -20,12 +20,19 @@ export interface User {
   language_code?: string;
 }
 
+export interface BlocklistUser {
+  user_id: number;
+  desc: string;
+}
+
 function api(
   endpoint: `log/${number}`,
   opt: { query?: string }
 ): Promise<LogInfo[]>;
 
 function api(endpoint: `session/${number}/${number}`): Promise<GameHighScore[]>;
+
+function api(endpoint: `blocklist/${number}`): Promise<BlocklistUser[]>;
 
 async function api<R>(
   endpoint: string,

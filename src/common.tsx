@@ -431,10 +431,11 @@ export class SimpleRouter<T extends string = string> extends CustomHTMLElement {
   #tabbar {
     display: flex;
     flex-wrap: wrap;
-    gap: 0 2px;
+    gap: 10px;
+    padding: 10px;
     user-select: none;
+    background: var(--theme-color);
     cursor: pointer;
-    box-shadow: inset 0 -2px #0007;
   }
 
   #tabbar > .item {
@@ -443,7 +444,6 @@ export class SimpleRouter<T extends string = string> extends CustomHTMLElement {
     padding: 0 10px;
     height: 30px;
     background: #fffc;
-    margin-top: 2px;
     color: black;
   }
 
@@ -453,6 +453,10 @@ export class SimpleRouter<T extends string = string> extends CustomHTMLElement {
 
   #slot {
     display: block;
+  }
+
+  ::slotted([data-tab]) {
+    padding: 10px;
   }
 
   ::slotted([data-tab]:not(.active)) {
@@ -477,7 +481,7 @@ export class TabbedElement extends CustomHTMLElement {
 
   @mount
   refresh() {
-    this.tabbar.replaceChildren(
+    this.tabbar?.replaceChildren(
       ...this.tabcontents.map((div) => (
         <div class="item">{div.dataset.tab}</div>
       ))
@@ -503,5 +507,43 @@ export class TabbedElement extends CustomHTMLElement {
   @listen("click", "#tabbar > .item")
   on_select_tab(e: MouseEvent) {
     this.selected = (e.currentTarget as HTMLDivElement).innerText;
+  }
+}
+
+@customElement("async-loader")
+@shadow(
+  <SimpleRouter id="router" value="loading">
+    <div class="other" data-value="loading">
+      加载中
+    </div>
+    <div class="other" data-value="error">
+      加载失败
+    </div>
+    <div class="target" data-value="ok">
+      <slot />
+    </div>
+  </SimpleRouter>
+)
+@css`
+  :host {
+    display: block;
+  }
+  .other {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .target {
+    display: grid;
+  }
+`
+export class AsyncLoader extends CustomHTMLElement {
+  @id("router")
+  router!: SimpleRouter<"loading" | "ok" | "error">;
+  set load(call: () => Promise<void>) {
+    this.router.value = "loading";
+    call()
+      .then(() => (this.router.value = "ok"))
+      .catch(() => (this.router.value = "error"));
   }
 }

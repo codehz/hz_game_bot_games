@@ -14,17 +14,18 @@ import {
 } from "./ce.js";
 import jsx from "/js/jsx.js";
 import "/js/common.js";
-import { DialogForm, FloatMenu, SimpleRouter, StyledButton, TabbedElement } from "/js/common.js";
-
-const { user_name } = getData() as { user_name: string };
+import {
+  AsyncLoader,
+  DialogForm,
+  FloatMenu,
+  StyledButton,
+  TabbedElement,
+} from "/js/common.js";
 
 @customElement("log-panel-page")
 @shadow(
-  <simple-router id="router" value="loading">
-    <div data-value="loading" id="loading">
-      Loading...
-    </div>
-    <table data-value="ok" id="container">
+  <AsyncLoader id="loader">
+    <table id="container">
       <thead>
         <tr>
           <th>会话</th>
@@ -35,10 +36,7 @@ const { user_name } = getData() as { user_name: string };
       </thead>
       <tbody id="content" />
     </table>
-    <div data-value="error" id="error">
-      Permission denied
-    </div>
-  </simple-router>
+  </AsyncLoader>
 )
 @css`
   :host {
@@ -85,8 +83,8 @@ export class LogPanelPage extends CustomHTMLElement {
     timeStyle: "medium",
   });
 
-  @id("router")
-  private router!: SimpleRouter;
+  @id("loader")
+  private loader!: AsyncLoader;
 
   @id("content")
   content!: HTMLElement;
@@ -101,17 +99,15 @@ export class LogPanelPage extends CustomHTMLElement {
 
   @watch("page", "query")
   @mount
-  async updatePage({
+  updatePage({
     page = this.page,
     query = this.query,
   }: {
     page?: string;
     query?: string;
   }) {
-    try {
-      this.router.value = "loading";
+    this.loader.load = async () => {
       const list = await api(`log/${+page}`, { query });
-      this.router.value = "ok";
       this.content.replaceChildren(
         ...list.map((item) => (
           <tr class="line" _={{ item }}>
@@ -122,9 +118,7 @@ export class LogPanelPage extends CustomHTMLElement {
           </tr>
         ))
       );
-    } catch {
-      this.router.value = "error";
-    }
+    };
   }
 
   @listen("contextmenu", ".line")
@@ -320,9 +314,8 @@ export class HighScoresUser extends CustomHTMLElement {
 
 @customElement("highscores-panel")
 @shadow(
-  <simple-router id="router" value="loading">
-    <div data-value="loading">加载中...</div>
-    <div data-value="ok">
+  <AsyncLoader id="loader">
+    <div>
       <table>
         <thead>
           <tr>
@@ -334,8 +327,7 @@ export class HighScoresUser extends CustomHTMLElement {
         <tbody id="content" />
       </table>
     </div>
-    <div data-value="error">加载失败</div>
-  </simple-router>
+  </AsyncLoader>
 )
 @css`
   :host {
@@ -345,10 +337,8 @@ export class HighScoresUser extends CustomHTMLElement {
   table {
     width: 100%;
     display: grid;
-    grid-template-columns: minmax(40px, max-content) 1fr minmax(
-        40px,
-        max-content
-      );
+    --side-column: minmax(40px, max-content);
+    grid-template-columns: var(--side-column) 1fr var(--side-column);
     gap: 8px;
   }
 
@@ -363,8 +353,8 @@ export class HighScoresUser extends CustomHTMLElement {
   }
 `
 export class HighScoresPanel extends CustomHTMLElement {
-  @id("router")
-  router!: SimpleRouter<"loading" | "ok" | "error">;
+  @id("loader")
+  loader!: AsyncLoader;
   @id("content")
   content!: HTMLElement;
 
@@ -380,10 +370,8 @@ export class HighScoresPanel extends CustomHTMLElement {
     session = this.session,
     user = this.user,
   }: Record<"session" | "user", string | undefined>) {
-    this.router.value = "loading";
-    console.log(session, user);
     if (!session || !user) return;
-    try {
+    this.loader.load = async () => {
       const scores = await api(`session/${+session}/${+user}`);
       this.content.replaceChildren(
         ...scores.map((obj) => (
@@ -396,10 +384,7 @@ export class HighScoresPanel extends CustomHTMLElement {
           </tr>
         ))
       );
-      this.router.value = "ok";
-    } catch {
-      this.router.value = "error";
-    }
+    };
   }
 }
 
@@ -424,8 +409,12 @@ export class HighScoresPanel extends CustomHTMLElement {
     <DialogForm type="dialog" id="highscores_form" title="高分榜">
       <HighScoresPanel id="highscores" />
     </DialogForm>
-    <StyledButton id="filter">打开过滤器</StyledButton>
-    <log-panel-page id="content" page="0" query="" />
+    <div id="body">
+      <div id="fiterbar">
+        <StyledButton id="filter">打开过滤器</StyledButton>
+      </div>
+      <log-panel-page id="content" page="0" query="" />
+    </div>
     <span class="button" id="prev">
       上一页
     </span>
@@ -438,6 +427,12 @@ export class HighScoresPanel extends CustomHTMLElement {
 @css`
   :host {
     display: block;
+  }
+
+  #body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .button {
@@ -514,11 +509,59 @@ export class LogPanel extends CustomHTMLElement {
   }
 }
 
+@customElement("blocklist-page")
+@shadow(
+  <AsyncLoader id="loader">
+    <table>
+      <thead>
+        <tr>
+          <th>用户ID</th>
+          <th>阻止理由</th>
+        </tr>
+      </thead>
+      <tbody id="content" />
+    </table>
+  </AsyncLoader>
+)
+export class BlocklistPage extends CustomHTMLElement {
+  @id("loader")
+  loader!: AsyncLoader;
+
+  @id("content")
+  content!: HTMLElement;
+
+  @watch("page")
+  @mount
+  async updatePage({ page }: { page?: string }) {
+    if (!page) return;
+    this.loader.load = async () => {
+      const list = await api(`blocklist/${+page}`);
+      this.content.replaceChildren(
+        ...list.map((opt) => (
+          <tr class="line" _={opt}>
+            <td>{opt.user_id}</td>
+            <td>{opt.desc}</td>
+          </tr>
+        ))
+      );
+    };
+  }
+}
+
+@customElement("blocklist-panel")
+@shadow(
+  <>
+    <BlocklistPage page="0" />
+  </>
+)
+export class BlocklistPanel extends CustomHTMLElement {}
+
 @customElement("admin-panel")
 @shadow(
   <>
-    <TabbedElement selected="日志面板">
-      <LogPanel data-tab="日志面板" />
+    <TabbedElement selected="日志">
+      <LogPanel data-tab="日志" />
+      <BlocklistPanel data-tab="阻止列表" />
     </TabbedElement>
   </>
 )
