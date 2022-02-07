@@ -111,6 +111,8 @@ export class ObjectMapping<T extends {}> extends CustomHTMLElement {
     padding: 5px 20px;
     background: var(--fgcolor);
     color: var(--bgcolor);
+    user-select: none;
+    cursor: pointer;
   }
 
   :host(:hover) {
@@ -253,6 +255,90 @@ export class DialogForm extends CustomHTMLElement {
   }
 }
 
+@customElement("float-menu")
+@shadow(
+  <>
+    <dialog id="dialog">
+      <slot />
+    </dialog>
+  </>
+)
+@css`
+  dialog[open] {
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-sizing: border-box;
+    box-shadow: 0 0 0 2px #0002;
+    background: #fff;
+  }
+  dialog::backdrop {
+    background: none;
+  }
+
+  slot {
+    display: flex;
+    flex-direction: column;
+  }
+
+  ::slotted(span) {
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+
+  ::slotted(span:hover) {
+    background: var(--theme-color);
+    color: white;
+  }
+`
+export class FloatMenu extends CustomHTMLElement {
+  @id("dialog")
+  dialog!: HTMLElement & {
+    showModal(): void;
+    close(): void;
+  };
+
+  @select("slot")
+  container!: HTMLSlotElement;
+
+  open({ x, y }: { x: number; y: number }) {
+    this.dialog.showModal();
+    const { offsetWidth: width, offsetHeight: height } = this.container;
+    x = Math.min(x, window.innerWidth - width - 2);
+    y = Math.min(y, window.innerHeight - height - 2);
+    this.dialog.style.left = `${x}px`;
+    this.dialog.style.top = `${y}px`;
+    this.dialog.animate(
+      [
+        {
+          height: "0",
+        },
+        {
+          height: `${height}px`,
+        },
+      ],
+      {
+        duration: 100,
+      }
+    );
+  }
+
+  close() {
+    this.dialog.close();
+  }
+
+  @listen("contextmenu")
+  on_contextmenu(e: PointerEvent) {
+    e.preventDefault();
+    this.dialog.close();
+  }
+
+  @listen("click")
+  on_click(e: MouseEvent) {
+    this.dialog.close();
+  }
+}
+
 @customElement("simple-router")
 @shadow(<slot />)
 @css`
@@ -277,6 +363,16 @@ export class DialogForm extends CustomHTMLElement {
   }
 `
 export class SimpleRouter extends CustomHTMLElement {
+  #observer = new ResizeObserver(
+    ([
+      {
+        borderBoxSize: [{ blockSize: height }],
+      },
+    ]) => {
+      this.#refresh(height);
+    }
+  );
+
   @prop()
   value!: string;
 
@@ -286,18 +382,25 @@ export class SimpleRouter extends CustomHTMLElement {
   @watch("value")
   @mount
   select({ value }: { value: string }) {
+    const last = this.active;
     for (const child of this.children) {
       if (child instanceof HTMLElement) {
         child.classList.toggle("active", child.dataset.value == value);
       }
     }
-    this.refresh();
+    const now = this.active;
+    if (last != now) {
+      if (last) this.#observer.unobserve(last);
+      this.#observer.observe(now);
+    }
   }
 
-  refresh = debounce(() => {
-    const active = this.active;
-    if (active) {
-      this.style.height = `${active.offsetHeight}px`;
+  #old = 0;
+
+  #refresh = debounce((height: number) => {
+    if (this.#old != height) {
+      this.style.height = `${height}px`;
+      this.#old = height;
     }
   });
 }

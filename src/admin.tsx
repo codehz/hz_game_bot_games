@@ -1,4 +1,5 @@
-import { getData, api } from "/js/utils.js";
+import { getData } from "/js/utils.js";
+import api, { LogInfo } from "/js/api.js";
 import {
   css,
   customElement,
@@ -13,7 +14,7 @@ import {
 } from "./ce.js";
 import jsx from "/js/jsx.js";
 import "/js/common.js";
-import { DialogForm, SimpleRouter } from "/js/common.js";
+import { DialogForm, FloatMenu, SimpleRouter } from "/js/common.js";
 
 const { user_name } = getData() as { user_name: string };
 
@@ -23,13 +24,17 @@ const { user_name } = getData() as { user_name: string };
     <div data-value="loading" id="loading">
       Loading...
     </div>
-    <div data-value="ok" id="container">
-      <span>会话</span>
-      <span>时间</span>
-      <span>用户</span>
-      <span>分数</span>
-      <div id="content" />
-    </div>
+    <table data-value="ok" id="container">
+      <thead>
+        <tr>
+          <th>会话</th>
+          <th>时间</th>
+          <th>用户</th>
+          <th>分数</th>
+        </tr>
+      </thead>
+      <tbody id="content" />
+    </table>
     <div data-value="error" id="error">
       Permission denied
     </div>
@@ -46,11 +51,22 @@ const { user_name } = getData() as { user_name: string };
     justify-content: center;
   }
 
-  #container {
-    display: grid;
-    grid-template-columns: repeat(4, auto);
-    gap: 4px 8px;
-    padding: 4px 8px;
+  table {
+    border-collapse: collapse;
+  }
+
+  th:nth-child(even),
+  td:nth-child(even) {
+    background: #ccc7;
+  }
+
+  .line {
+    cursor: help;
+  }
+
+  .line:hover {
+    background-color: var(--theme-color);
+    color: white;
   }
 
   #error {
@@ -81,6 +97,8 @@ export class LogPanelPage extends CustomHTMLElement {
   @prop()
   query!: string;
 
+  item!: LogInfo;
+
   @watch("page", "query")
   @mount
   async updatePage({
@@ -95,18 +113,36 @@ export class LogPanelPage extends CustomHTMLElement {
       const list = await api(`log/${+page}`, { query });
       this.router.value = "ok";
       this.content.replaceChildren(
-        ...list.map(({ session_id, time, user_id, score }) => (
-          <>
-            <span>{session_id}</span>
-            <span>{LogPanelPage.format.format(time)}</span>
-            <span>{user_id}</span>
-            <span>{score}</span>
-          </>
+        ...list.map((item) => (
+          <tr class="line" _={{ item }}>
+            <td>{item.session_id}</td>
+            <td>{LogPanelPage.format.format(item.time)}</td>
+            <td>{item.user_id}</td>
+            <td>{item.score}</td>
+          </tr>
         ))
       );
     } catch {
       this.router.value = "error";
     }
+  }
+
+  @listen("contextmenu", ".line")
+  on_menu(e: PointerEvent) {
+    e.preventDefault();
+    const el = e.currentTarget as HTMLElement & {
+      item: LogInfo;
+    };
+    this.item = el.item;
+    this.dispatchEvent(
+      new CustomEvent("detail", {
+        bubbles: true,
+        detail: {
+          x: e.x,
+          y: e.y,
+        },
+      })
+    );
   }
 }
 
@@ -245,6 +281,15 @@ export class QueryInput extends CustomHTMLElement {
       <QueryInput name="min_time" label="开始时间" type="datetime-local" />
       <QueryInput name="max_time" label="结束时间" type="datetime-local" />
     </DialogForm>
+    <FloatMenu id="menu">
+      <span data-action="query_user">查询用户排名</span>
+      <span data-action="filter" data-type="session_id">
+        过滤当前会话
+      </span>
+      <span data-action="filter" data-type="user_id">
+        过滤当前用户
+      </span>
+    </FloatMenu>
     <button id="filter">打开过滤器</button>
     <log-panel-page id="content" page="0" query="" />
     <span class="button" id="prev">
@@ -259,7 +304,6 @@ export class QueryInput extends CustomHTMLElement {
 @css`
   :host {
     display: block;
-    user-select: none;
   }
 
   .button {
@@ -272,6 +316,8 @@ export class LogPanel extends CustomHTMLElement {
   content!: LogPanelPage;
   @id("number")
   page_number!: HTMLElement;
+  @id("menu")
+  menu!: FloatMenu;
 
   @id("queryform")
   queryform!: DialogForm;
@@ -303,6 +349,25 @@ export class LogPanel extends CustomHTMLElement {
     this.page++;
     this.page_number.textContent = this.page + 1 + "";
     this.content.page = this.page + "";
+  }
+
+  @listen("detail")
+  open_menu({ detail }: CustomEvent<{ item: {}; x: number; y: number }>) {
+    this.menu.open(detail);
+  }
+
+  @listen("click", "float-menu > span")
+  click_menu(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    switch (target.dataset.action) {
+      case "filter": {
+        const selector = `[name="${target.dataset.type}"]`;
+        const input = this.shadowRoot!.querySelector(selector) as QueryInput
+        input.value = (this.content.item as any)[target.dataset.type!];
+        this.open_filter();
+        break;
+      }
+    }
   }
 }
 

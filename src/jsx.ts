@@ -66,10 +66,12 @@ function createElement(
           else
             for (const name in value)
               ret.classList.toggle(toDash(name), !!value[name]);
-        } else if (key == "style")
+        } else if (key == "style") {
           for (const name in value)
             ret.style.setProperty(toDash(name), value[name]);
-        else ret.setAttribute(key, value);
+        } else if (key == "_") {
+          Object.assign(ret, value);
+        } else ret.setAttribute(key, value);
       } else if (key == "html") {
         ret.innerHTML = value;
       } else {

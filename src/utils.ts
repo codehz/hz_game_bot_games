@@ -4,39 +4,6 @@ export async function reqeust<R>(method: string, body: string) {
   return (await res.json()) as R;
 }
 
-export function api(
-  endpoint: `log/${number}`,
-  opt: { query?: string }
-): Promise<
-  {
-    session_id: number;
-    time: number;
-    user_id: number;
-    score: number;
-  }[]
->;
-export async function api<R>(
-  endpoint: string,
-  {
-    body,
-    method,
-    query,
-  }: {
-    body?: string;
-    method?: "GET" | "PUT" | "DELETE";
-    query?: URLSearchParams | string;
-  } = {}
-) {
-  let path = `/api/${endpoint}`;
-  if (query) path += "?" + query;
-  const res = await fetch(
-    path,
-    body ? { method: method ?? "PUT", body } : { method }
-  );
-  if (res.status != 200) throw new Error("request failed");
-  return (await res.json()) as R;
-}
-
 export function parseJWT<T = {}>(token: string): T & { exp: number } {
   return JSON.parse(atob(token.split(".")[1]));
 }

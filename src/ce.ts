@@ -70,9 +70,20 @@ export abstract class CustomHTMLElement extends HTMLElement {
         for (const [event, arr] of Object.entries(listeners)) {
           const callback = (e: Event) => {
             for (const { selector, name } of arr) {
-              if (!selector || !(e.target as HTMLElement).matches(selector))
-                continue;
-              (this as any)[name](e);
+              if (selector) {
+                const target = e.target as HTMLElement;
+                const matched = target.closest(selector);
+                if (matched) {
+                  Object.defineProperty(e, "currentTarget", {
+                    enumerable: false,
+                    writable: false,
+                    value: matched,
+                  });
+                  (this as any)[name](e);
+                }
+              } else {
+                (this as any)[name](e);
+              }
             }
           };
           this.#listeners.push({ node: root, event, listener: callback });
@@ -127,7 +138,13 @@ export const customElement =
       const observed = cls.prototype[$observed] ?? {};
       (cls as any)["observedAttributes"] = Object.keys(observed);
     }
-    console.log("%cregister%c %s %s", "background: black; color: white;", "background: unset; color: unset;", name, cls.name);
+    console.log(
+      "%c register %c %s %s",
+      "background: black; color: white;",
+      "background: unset; color: unset;",
+      name,
+      cls.name
+    );
     customElements.define(name, cls);
     return cls;
   };
