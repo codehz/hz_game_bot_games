@@ -145,6 +145,7 @@ export class StyledButton extends CustomHTMLElement {
       <div class="bottombar">
         <StyledButton id="cancel">取消</StyledButton>
         <StyledButton id="confirm">确认</StyledButton>
+        <StyledButton id="close">关闭</StyledButton>
       </div>
     </div>
   </dialog>
@@ -186,6 +187,15 @@ export class StyledButton extends CustomHTMLElement {
     justify-content: flex-end;
     gap: 8px;
   }
+
+  :host([type="form"]) #close {
+    display: none;
+  }
+
+  :host([type="dialog"]) #cancel,
+  :host([type="dialog"]) #confirm {
+    display: none;
+  }
 `
 export class DialogForm extends CustomHTMLElement {
   @id("dialog")
@@ -213,7 +223,7 @@ export class DialogForm extends CustomHTMLElement {
   }
 
   @listen_at("close", "#dialog")
-  on_close(e: MouseEvent) {
+  on_close() {
     if (this.#resolver) {
       if (this.dialog.returnValue == "confirm") {
         this.#resolver.resolve();
@@ -362,7 +372,7 @@ export class FloatMenu extends CustomHTMLElement {
     z-index: 1;
   }
 `
-export class SimpleRouter extends CustomHTMLElement {
+export class SimpleRouter<T extends string = string> extends CustomHTMLElement {
   #observer = new ResizeObserver(
     ([
       {
@@ -374,7 +384,7 @@ export class SimpleRouter extends CustomHTMLElement {
   );
 
   @prop()
-  value!: string;
+  value!: T;
 
   @select(".active", { dynamic: true })
   active!: HTMLElement;

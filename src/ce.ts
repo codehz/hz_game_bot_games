@@ -24,6 +24,10 @@ export abstract class CustomHTMLElement extends HTMLElement {
   [$direct_listeners]?: { name: string; event: string; selector: string }[];
   #listeners: { node: Node; event: string; listener: EventListener }[] = [];
 
+  protected set shadowTemplate(node: Node) {
+    this[$shadow] = node;
+  }
+
   constructor() {
     super();
     this.removeAttribute("placeholder");

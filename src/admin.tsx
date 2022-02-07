@@ -1,5 +1,5 @@
 import { getData } from "/js/utils.js";
-import api, { LogInfo } from "/js/api.js";
+import api, { LogInfo, User } from "/js/api.js";
 import {
   css,
   customElement,
@@ -272,17 +272,148 @@ export class QueryInput extends CustomHTMLElement {
   }
 }
 
+@customElement("highscores-user")
+@css`
+  :host {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-family: monospace;
+  }
+
+  [data-type] {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    background: #fff;
+    color: #000;
+  }
+
+  [data-type]::before {
+    content: attr(data-type) ":";
+    margin-right: 2px;
+  }
+`
+export class HighScoresUser extends CustomHTMLElement {
+  constructor({ id, username, first_name, last_name, language_code }: User) {
+    super();
+    this.shadowTemplate = (
+      <>
+        <span data-type="name">
+          {first_name} {last_name}
+        </span>
+        {username && (
+          <a
+            data-type="username"
+            href={`https://t.me/${username}`}
+            target="_blank"
+          >
+            {username}
+          </a>
+        )}
+        <span data-type="id">{id}</span>
+        <span data-type="lang">{language_code ?? "unknown"}</span>
+      </>
+    );
+  }
+}
+
+@customElement("highscores-panel")
+@shadow(
+  <simple-router id="router" value="loading">
+    <div data-value="loading">加载中...</div>
+    <div data-value="ok">
+      <table>
+        <thead>
+          <tr>
+            <th data-type="position">排行</th>
+            <th data-type="user">玩家信息</th>
+            <th data-type="score">分数</th>
+          </tr>
+        </thead>
+        <tbody id="content" />
+      </table>
+    </div>
+    <div data-value="error">加载失败</div>
+  </simple-router>
+)
+@css`
+  :host {
+    color: var(--fgcolor);
+  }
+
+  table {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(40px, max-content) 1fr minmax(
+        40px,
+        max-content
+      );
+    gap: 8px;
+  }
+
+  thead,
+  tbody,
+  tr {
+    display: contents;
+  }
+
+  td[data-type="position"] {
+    text-align: right;
+  }
+`
+export class HighScoresPanel extends CustomHTMLElement {
+  @id("router")
+  router!: SimpleRouter<"loading" | "ok" | "error">;
+  @id("content")
+  content!: HTMLElement;
+
+  @prop()
+  session?: string;
+
+  @prop()
+  user?: string;
+
+  @watch("session", "user")
+  @mount
+  async load({
+    session = this.session,
+    user = this.user,
+  }: Record<"session" | "user", string | undefined>) {
+    this.router.value = "loading";
+    console.log(session, user);
+    if (!session || !user) return;
+    try {
+      const scores = await api(`session/${+session}/${+user}`);
+      this.content.replaceChildren(
+        ...scores.map((obj) => (
+          <tr class="line" _={obj}>
+            <td data-type="position">{obj.position}</td>
+            <td data-type="user">
+              <HighScoresUser {...obj.user} />
+            </td>
+            <td data-type="score">{obj.score}</td>
+          </tr>
+        ))
+      );
+      this.router.value = "ok";
+    } catch {
+      this.router.value = "error";
+    }
+  }
+}
+
 @customElement("log-panel")
 @shadow(
   <>
-    <DialogForm id="queryform" title="过滤器设置">
+    <DialogForm type="form" id="queryform" title="过滤器设置">
       <QueryInput name="session_id" label="会话ID" type="number" />
       <QueryInput name="user_id" label="用户ID" type="number" />
       <QueryInput name="min_time" label="开始时间" type="datetime-local" />
       <QueryInput name="max_time" label="结束时间" type="datetime-local" />
     </DialogForm>
     <FloatMenu id="menu">
-      <span data-action="query_user">查询用户排名</span>
+      <span data-action="highscores">查询用户排名</span>
       <span data-action="filter" data-type="session_id">
         过滤当前会话
       </span>
@@ -290,6 +421,9 @@ export class QueryInput extends CustomHTMLElement {
         过滤当前用户
       </span>
     </FloatMenu>
+    <DialogForm type="dialog" id="highscores_form" title="高分榜">
+      <HighScoresPanel id="highscores" />
+    </DialogForm>
     <button id="filter">打开过滤器</button>
     <log-panel-page id="content" page="0" query="" />
     <span class="button" id="prev">
@@ -318,6 +452,10 @@ export class LogPanel extends CustomHTMLElement {
   page_number!: HTMLElement;
   @id("menu")
   menu!: FloatMenu;
+  @id("highscores_form")
+  highscores_form!: DialogForm;
+  @id("highscores")
+  highscores!: HighScoresPanel;
 
   @id("queryform")
   queryform!: DialogForm;
@@ -362,10 +500,15 @@ export class LogPanel extends CustomHTMLElement {
     switch (target.dataset.action) {
       case "filter": {
         const selector = `[name="${target.dataset.type}"]`;
-        const input = this.shadowRoot!.querySelector(selector) as QueryInput
+        const input = this.shadowRoot!.querySelector(selector) as QueryInput;
         input.value = (this.content.item as any)[target.dataset.type!];
         this.open_filter();
         break;
+      }
+      case "highscores": {
+        this.highscores.session = this.content.item.session_id + "";
+        this.highscores.user = this.content.item.user_id + "";
+        this.highscores_form.open().catch(() => {});
       }
     }
   }

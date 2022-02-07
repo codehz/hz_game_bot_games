@@ -5,10 +5,28 @@ export type LogInfo = {
   score: number;
 };
 
+export interface GameHighScore {
+  position: number;
+  user: User;
+  score: number;
+}
+
+export interface User {
+  id: number;
+  is_bot: boolean;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+}
+
 function api(
   endpoint: `log/${number}`,
   opt: { query?: string }
 ): Promise<LogInfo[]>;
+
+function api(endpoint: `session/${number}/${number}`): Promise<GameHighScore[]>;
+
 async function api<R>(
   endpoint: string,
   {
