@@ -414,3 +414,94 @@ export class SimpleRouter<T extends string = string> extends CustomHTMLElement {
     }
   });
 }
+
+@customElement("tabbed-element")
+@shadow(
+  <>
+    <div id="tabbar" />
+    <slot id="content" />
+  </>
+)
+@css`
+  :host {
+    display: grid;
+    grid-template-rows: max-content 1fr;
+  }
+
+  #tabbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2px;
+    user-select: none;
+    cursor: pointer;
+    box-shadow: inset 0 -2px #0007;
+  }
+
+  #tabbar > .item {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 10px;
+    height: 30px;
+    background: #fffc;
+    margin-top: 2px;
+    color: black;
+  }
+
+  #tabbar > .item.active {
+    background: white;
+  }
+
+  #slot {
+    display: block;
+  }
+
+  ::slotted([data-tab]:not(.active)) {
+    display: none;
+  }
+`
+export class TabbedElement extends CustomHTMLElement {
+  #moniter = new MutationObserver(() => this.refresh());
+  constructor() {
+    super();
+    this.#moniter.observe(this, { childList: true });
+  }
+
+  @prop()
+  selected?: string;
+
+  @select("[data-tab]", { all: true, dynamic: true })
+  tabcontents!: HTMLElement[];
+
+  @id("tabbar")
+  tabbar!: HTMLDivElement;
+
+  @mount
+  refresh() {
+    this.tabbar.replaceChildren(
+      ...this.tabcontents.map((div) => (
+        <div class="item">{div.dataset.tab}</div>
+      ))
+    );
+  }
+
+  @watch("selected")
+  @mount
+  on_select({ selected }: { selected?: string }) {
+    if (selected) {
+      for (const tabcontent of this.tabcontents) {
+        tabcontent.classList.toggle(
+          "active",
+          tabcontent.dataset.tab == selected
+        );
+      }
+      for (const tab of this.tabbar.children) {
+        tab.classList.toggle("active", tab.textContent == selected);
+      }
+    }
+  }
+
+  @listen("click", "#tabbar > .item")
+  on_select_tab(e: MouseEvent) {
+    this.selected = (e.currentTarget as HTMLDivElement).innerText;
+  }
+}

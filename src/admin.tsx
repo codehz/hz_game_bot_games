@@ -14,7 +14,7 @@ import {
 } from "./ce.js";
 import jsx from "/js/jsx.js";
 import "/js/common.js";
-import { DialogForm, FloatMenu, SimpleRouter } from "/js/common.js";
+import { DialogForm, FloatMenu, SimpleRouter, StyledButton, TabbedElement } from "/js/common.js";
 
 const { user_name } = getData() as { user_name: string };
 
@@ -28,9 +28,9 @@ const { user_name } = getData() as { user_name: string };
       <thead>
         <tr>
           <th>会话</th>
-          <th>时间</th>
-          <th>用户</th>
+          <th>玩家</th>
           <th>分数</th>
+          <th>时间</th>
         </tr>
       </thead>
       <tbody id="content" />
@@ -116,9 +116,9 @@ export class LogPanelPage extends CustomHTMLElement {
         ...list.map((item) => (
           <tr class="line" _={{ item }}>
             <td>{item.session_id}</td>
-            <td>{LogPanelPage.format.format(item.time)}</td>
             <td>{item.user_id}</td>
             <td>{item.score}</td>
+            <td>{LogPanelPage.format.format(item.time)}</td>
           </tr>
         ))
       );
@@ -424,7 +424,7 @@ export class HighScoresPanel extends CustomHTMLElement {
     <DialogForm type="dialog" id="highscores_form" title="高分榜">
       <HighScoresPanel id="highscores" />
     </DialogForm>
-    <button id="filter">打开过滤器</button>
+    <StyledButton id="filter">打开过滤器</StyledButton>
     <log-panel-page id="content" page="0" query="" />
     <span class="button" id="prev">
       上一页
@@ -517,8 +517,9 @@ export class LogPanel extends CustomHTMLElement {
 @customElement("admin-panel")
 @shadow(
   <>
-    <span class="welcome">Hello {user_name}</span>
-    <LogPanel />
+    <TabbedElement selected="日志面板">
+      <LogPanel data-tab="日志面板" />
+    </TabbedElement>
   </>
 )
 @css`
