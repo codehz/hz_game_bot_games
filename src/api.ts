@@ -34,6 +34,11 @@ function api(endpoint: `session/${number}/${number}`): Promise<GameHighScore[]>;
 
 function api(endpoint: `blocklist/${number}`): Promise<BlocklistUser[]>;
 
+function api(
+  endpoint: `block/${number}`,
+  opt: { body: string }
+): Promise<{ count: number }>;
+
 async function api<R>(
   endpoint: string,
   {

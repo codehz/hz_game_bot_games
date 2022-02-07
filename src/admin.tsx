@@ -1,4 +1,4 @@
-import api, { LogInfo, User } from "/js/api.js";
+import api, { GameHighScore, LogInfo, User } from "/js/api.js";
 import {
   css,
   customElement,
@@ -315,20 +315,28 @@ export class HighScoresUser extends CustomHTMLElement {
 
 @customElement("highscores-panel")
 @shadow(
-  <AsyncLoader id="loader">
-    <div>
-      <table>
-        <thead>
-          <tr>
-            <th data-type="position">排行</th>
-            <th data-type="user">玩家信息</th>
-            <th data-type="score">分数</th>
-          </tr>
-        </thead>
-        <tbody id="content" />
-      </table>
-    </div>
-  </AsyncLoader>
+  <>
+    <FloatMenu id="menu">
+      <span data-action="block">阻止用户</span>
+    </FloatMenu>
+    <DialogForm id="confirm_block" type="form" title="确认阻止用户">
+      <QueryInput id="block_reason" label="阻止理由" type="text" />
+    </DialogForm>
+    <AsyncLoader id="loader">
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th data-type="position">排行</th>
+              <th data-type="user">玩家信息</th>
+              <th data-type="score">分数</th>
+            </tr>
+          </thead>
+          <tbody id="content" />
+        </table>
+      </div>
+    </AsyncLoader>
+  </>
 )
 @css`
   :host {
@@ -358,6 +366,14 @@ export class HighScoresPanel extends CustomHTMLElement {
   loader!: AsyncLoader;
   @id("content")
   content!: HTMLElement;
+  @id("menu")
+  menu!: FloatMenu;
+  @id("confirm_block")
+  confirm_block!: DialogForm;
+  @id("block_reason")
+  block_reason!: QueryInput;
+
+  item!: GameHighScore;
 
   @prop()
   session?: string;
@@ -375,17 +391,45 @@ export class HighScoresPanel extends CustomHTMLElement {
     this.loader.load = async () => {
       const scores = await api(`session/${+session}/${+user}`);
       this.content.replaceChildren(
-        ...scores.map((obj) => (
-          <tr class="line" _={obj}>
-            <td data-type="position">{obj.position}</td>
+        ...scores.map((item) => (
+          <tr class="line" _={{ item }}>
+            <td data-type="position">{item.position}</td>
             <td data-type="user">
-              <HighScoresUser {...obj.user} />
+              <HighScoresUser {...item.user} />
             </td>
-            <td data-type="score">{obj.score}</td>
+            <td data-type="score">{item.score}</td>
           </tr>
         ))
       );
     };
+  }
+
+  @listen("contextmenu", ".line")
+  on_contextmenu(e: PointerEvent) {
+    e.preventDefault();
+    const target = e.currentTarget as HTMLElement & { item: GameHighScore };
+    this.item = target.item;
+    this.menu.open(e);
+  }
+
+  @listen("click", "#menu > span")
+  on_menuclick(e: MouseEvent) {
+    const target = e.currentTarget as HTMLElement;
+    switch (target.dataset.action) {
+      case "block": {
+        this.confirm_block
+          .open()
+          .then(async () => {
+            const reason = this.block_reason.value;
+            if (reason) {
+              await api(`block/${this.item.user.id}`, { body: reason });
+              console.log("TODO");
+            }
+          })
+          .catch(() => {});
+        break;
+      }
+    }
   }
 }
 
