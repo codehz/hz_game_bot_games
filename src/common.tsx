@@ -344,7 +344,7 @@ export class FloatMenu extends CustomHTMLElement {
   }
 
   @listen("click")
-  on_click(e: MouseEvent) {
+  on_click() {
     this.dialog.close();
   }
 }
@@ -408,7 +408,7 @@ export class SimpleRouter<T extends string = string> extends CustomHTMLElement {
   #old = 0;
 
   #refresh = debounce((height: number) => {
-    if (this.#old != height) {
+    if (this.#old != height && height != 0) {
       this.style.height = `${height}px`;
       this.#old = height;
     }
@@ -595,9 +595,7 @@ export class PageSelector extends CustomHTMLElement {
       return;
     }
     this.#oldvalue = value;
-    this.dispatchEvent(
-      new CustomEvent("set_page", { detail: value })
-    );
+    this.dispatchEvent(new CustomEvent("set_page", { detail: value }));
   }
 
   @listen_at("change", "input")
