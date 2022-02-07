@@ -517,6 +517,9 @@ export class BlocklistPage extends CustomHTMLElement {
   @id("content")
   content!: HTMLElement;
 
+  @prop()
+  page!: string;
+
   @watch("page")
   @mount
   async updatePage({ page }: { page?: string }) {
@@ -538,10 +541,26 @@ export class BlocklistPage extends CustomHTMLElement {
 @customElement("blocklist-panel")
 @shadow(
   <>
-    <BlocklistPage page="0" />
+    <BlocklistPage id="content" page="0" />
+    <PageSelector />
   </>
 )
-export class BlocklistPanel extends CustomHTMLElement {}
+@css`
+  :host {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+`
+export class BlocklistPanel extends CustomHTMLElement {
+  @id("content")
+  content!: BlocklistPage;
+
+  @listen("set_page", "page-selector")
+  set_page({ detail }: CustomEvent<number>) {
+    this.content.page = detail + "";
+  }
+}
 
 @customElement("admin-panel")
 @shadow(
