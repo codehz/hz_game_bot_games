@@ -1,4 +1,3 @@
-import { getData } from "/js/utils.js";
 import api, { LogInfo, User } from "/js/api.js";
 import {
   css,
@@ -396,6 +395,8 @@ export class HighScoresPanel extends CustomHTMLElement {
     <DialogForm type="form" id="queryform" title="过滤器设置">
       <QueryInput name="session_id" label="会话ID" type="number" />
       <QueryInput name="user_id" label="用户ID" type="number" />
+      <QueryInput name="min_score" label="最低分数" type="number" />
+      <QueryInput name="max_score" label="最高分数" type="number" />
       <QueryInput name="min_time" label="开始时间" type="datetime-local" />
       <QueryInput name="max_time" label="结束时间" type="datetime-local" />
     </DialogForm>
