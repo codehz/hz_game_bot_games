@@ -11,6 +11,7 @@ import {
   listen,
   prop,
   select,
+  listen_at,
 } from "./ce.js";
 import jsx from "/js/jsx.js";
 import "/js/common.js";
@@ -18,6 +19,7 @@ import {
   AsyncLoader,
   DialogForm,
   FloatMenu,
+  PageSelector,
   StyledButton,
   TabbedElement,
 } from "/js/common.js";
@@ -414,14 +416,8 @@ export class HighScoresPanel extends CustomHTMLElement {
         <StyledButton id="filter">打开过滤器</StyledButton>
       </div>
       <log-panel-page id="content" page="0" query="" />
+      <PageSelector />
     </div>
-    <span class="button" id="prev">
-      上一页
-    </span>
-    <span id="number">1</span>
-    <span class="button" id="next">
-      下一页
-    </span>
   </>
 )
 @css`
@@ -470,18 +466,9 @@ export class LogPanel extends CustomHTMLElement {
     } catch {}
   }
 
-  @listen("click", "#prev")
-  go_prev() {
-    this.page = Math.max(0, this.page - 1);
-    this.page_number.textContent = this.page + 1 + "";
-    this.content.page = this.page + "";
-  }
-
-  @listen("click", "#next")
-  go_next() {
-    this.page++;
-    this.page_number.textContent = this.page + 1 + "";
-    this.content.page = this.page + "";
+  @listen_at("set_page", "page-selector")
+  set_page({ detail }: CustomEvent<number>) {
+    this.content.page = detail + "";
   }
 
   @listen("detail")

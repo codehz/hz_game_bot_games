@@ -547,3 +547,74 @@ export class AsyncLoader extends CustomHTMLElement {
       .catch(() => (this.router.value = "error"));
   }
 }
+
+@customElement("page-selector")
+@shadow(
+  <>
+    <div id="prev">上一页</div>
+    <input id="number" type="number" value="1" min="1" />
+    <div id="next">下一页</div>
+  </>
+)
+@css`
+  :host {
+    display: flex;
+    gap: 10px;
+    user-select: none;
+  }
+
+  input {
+    appearance: none;
+    border: none;
+    width: 4ex;
+    text-align: center;
+  }
+
+  input::-webkit-inner-spin-button {
+    display: none;
+  }
+
+  input:focus-visible {
+    outline: none;
+    box-shadow: inset 0 -2px black;
+  }
+`
+export class PageSelector extends CustomHTMLElement {
+  @id("number")
+  input!: HTMLInputElement;
+
+  get value() {
+    return this.input.valueAsNumber - 1;
+  }
+
+  #oldvalue = 0;
+
+  #notifyIfNeeded() {
+    const value = this.value;
+    if (value == this.#oldvalue) {
+      return;
+    }
+    this.#oldvalue = value;
+    this.dispatchEvent(
+      new CustomEvent("set_page", { detail: value })
+    );
+  }
+
+  @listen_at("change", "input")
+  normalize_value() {
+    this.input.valueAsNumber = Math.max(1, +this.input.value || 1);
+    this.#notifyIfNeeded();
+  }
+
+  @listen("click", "#prev")
+  go_prev() {
+    this.input.valueAsNumber = Math.max(1, this.input.valueAsNumber - 1);
+    this.#notifyIfNeeded();
+  }
+
+  @listen("click", "#next")
+  go_next() {
+    this.input.valueAsNumber++;
+    this.#notifyIfNeeded();
+  }
+}
