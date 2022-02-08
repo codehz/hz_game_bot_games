@@ -9,6 +9,17 @@ const $host_listeners = Symbol("host_listeners");
 const $listeners = Symbol("listeners");
 const $closest_listeners = Symbol("closest_listeners");
 const $direct_listeners = Symbol("direct_listeners");
+const $frame = Symbol("frame");
+
+export function cloneNode(node: Node): Node {
+  const ret = node.cloneNode();
+  if (node.cloneNode == Node.prototype.cloneNode) {
+    for (const child of node.childNodes) {
+      ret.appendChild(cloneNode(child));
+    }
+  }
+  return ret;
+}
 
 export abstract class CustomHTMLElement extends HTMLElement {
   [$selector]?: Map<string, { selector: string; all: boolean } | string>;
@@ -16,16 +27,68 @@ export abstract class CustomHTMLElement extends HTMLElement {
   [$shadow]?: Node;
   [$css]?: CSSStyleSheet[];
   [$observed]?: Record<string, Array<string | symbol>>;
-  [$mounts]?: string[];
-  [$unmounts]?: string[];
+  [$mounts]?: (string | ((obj: object) => void))[];
+  [$unmounts]?: (string | (() => void))[];
   [$host_listeners]?: { name: string; event: string }[];
   [$listeners]?: Record<string, { selector?: string; name: string }[]>;
   [$closest_listeners]?: { name: string; event: string; selector: string }[];
   [$direct_listeners]?: { name: string; event: string; selector: string }[];
+  [$frame]?: number;
   #listeners: { node: Node; event: string; listener: EventListener }[] = [];
 
-  protected set shadowTemplate(node: Node) {
-    this[$shadow] = node;
+  protected set shadowTemplate(shadow: Node) {
+    const root = this.shadowRoot ?? this.attachShadow({ mode: "open" });
+    root.replaceChildren(shadow);
+    const css = this[$css];
+    if (css) {
+      root.adoptedStyleSheets = css;
+    }
+    const listeners = this[$listeners];
+    if (listeners)
+      for (const [event, arr] of Object.entries(listeners)) {
+        const callback = (e: Event) => {
+          for (const { selector, name } of arr) {
+            if (selector) {
+              const target = e.target as HTMLElement;
+              const matched = target.closest(selector);
+              if (matched) {
+                Object.defineProperty(e, "currentTarget", {
+                  enumerable: false,
+                  writable: false,
+                  value: matched,
+                });
+                (this as any)[name](e);
+              }
+            } else {
+              (this as any)[name](e);
+            }
+          }
+        };
+        this.#listeners.push({ node: root, event, listener: callback });
+        root.addEventListener(event, callback);
+      }
+
+    this[$direct_listeners]?.forEach(({ name, event, selector }) => {
+      const callback = (e: Event) => {
+        (this as any)[name](e);
+      };
+      for (const el of root.querySelectorAll(selector)) {
+        el.addEventListener(event, callback);
+      }
+    });
+
+    this[$selector]?.forEach((target, name) => {
+      if (typeof target == "string") {
+        (this as any)[name] = root.getElementById(target);
+      } else {
+        const { selector, all } = target;
+        if (all) {
+          (this as any)[name] = [...root.querySelectorAll(selector)];
+        } else {
+          (this as any)[name] = root.querySelector(selector);
+        }
+      }
+    });
   }
 
   constructor() {
@@ -51,7 +114,7 @@ export abstract class CustomHTMLElement extends HTMLElement {
   connectedCallback() {
     const template = this[$template];
     if (template) {
-      this.replaceChildren(template.cloneNode(true));
+      this.replaceChildren(cloneNode(template));
     }
     this[$closest_listeners]?.forEach(({ name, event, selector }) => {
       const target = this.closest(selector);
@@ -62,76 +125,28 @@ export abstract class CustomHTMLElement extends HTMLElement {
       }
     });
     const shadow = this[$shadow];
-    if (shadow) {
-      const root = this.shadowRoot ?? this.attachShadow({ mode: "open" });
-      root.replaceChildren(shadow.cloneNode(true));
-      const css = this[$css];
-      if (css) {
-        root.adoptedStyleSheets = css;
-      }
-      const listeners = this[$listeners];
-      if (listeners)
-        for (const [event, arr] of Object.entries(listeners)) {
-          const callback = (e: Event) => {
-            for (const { selector, name } of arr) {
-              if (selector) {
-                const target = e.target as HTMLElement;
-                const matched = target.closest(selector);
-                if (matched) {
-                  Object.defineProperty(e, "currentTarget", {
-                    enumerable: false,
-                    writable: false,
-                    value: matched,
-                  });
-                  (this as any)[name](e);
-                }
-              } else {
-                (this as any)[name](e);
-              }
-            }
-          };
-          this.#listeners.push({ node: root, event, listener: callback });
-          root.addEventListener(event, callback);
-        }
-
-      this[$direct_listeners]?.forEach(({ name, event, selector }) => {
-        const callback = (e: Event) => {
-          (this as any)[name](e);
-        };
-        for (const el of root.querySelectorAll(selector)) {
-          el.addEventListener(event, callback);
-        }
-      });
-
-      this[$selector]?.forEach((target, name) => {
-        if (typeof target == "string") {
-          (this as any)[name] = root.getElementById(target);
-        } else {
-          const { selector, all } = target;
-          if (all) {
-            (this as any)[name] = [...root.querySelectorAll(selector)];
-          } else {
-            (this as any)[name] = root.querySelector(selector);
-          }
-        }
-      });
-    }
+    if (shadow) this.shadowTemplate = cloneNode(shadow);
     const obj: Record<string, string | null> = {};
     for (const key in this[$observed]) {
       const value = this.getAttribute(key);
       if (value) obj[key] = value;
     }
-    this[$mounts]?.forEach((name) => (this as any)[name](obj));
+    this[$mounts]?.forEach((name) =>
+      typeof name == "string" ? (this as any)[name](obj) : name.call(this, obj)
+    );
   }
 
   disconnectedCallback() {
-    const setting = this[$unmounts];
-    setting?.forEach((name) => (this as any)[name]());
-    this.#listeners.forEach(({ node, event, listener }) =>
-      node.removeEventListener(event, listener)
+    this[$unmounts]?.forEach((name) =>
+      typeof name == "string" ? (this as any)[name]() : name.call(this)
     );
-    this.#listeners = [];
-    this.shadowRoot?.replaceChildren();
+    if (this[$shadow]) {
+      this.#listeners.forEach(({ node, event, listener }) =>
+        node.removeEventListener(event, listener)
+      );
+      this.#listeners = [];
+      this.shadowRoot!.replaceChildren();
+    }
   }
 }
 
@@ -273,6 +288,18 @@ export const unmount = <T extends CustomHTMLElement>(
 ) => {
   const unmounts = target[$unmounts] ?? (target[$unmounts] = []);
   unmounts.push(key);
+};
+
+export const frame = <T extends CustomHTMLElement>(target: T, key: string) => {
+  const mounts = target[$mounts] ?? (target[$mounts] = []);
+  const unmounts = target[$unmounts] ?? (target[$unmounts] = []);
+  mounts.push(function cb(this: CustomHTMLElement, o: object) {
+    (this as any)[key](o);
+    this[$frame] = requestAnimationFrame(() => cb.call(this, o));
+  });
+  unmounts.push(function (this: CustomHTMLElement) {
+    if (this[$frame]) cancelAnimationFrame(this[$frame]!);
+  });
 };
 
 export const listen =

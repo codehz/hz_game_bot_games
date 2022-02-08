@@ -10,3 +10,7 @@ interface ShadowRoot {
 interface Document {
   adoptedStyleSheets: CSSStyleSheet[];
 }
+
+interface ResizeObserverEntry {
+  readonly devicePixelContentBoxSize?: ReadonlyArray<ResizeObserverSize>;
+}

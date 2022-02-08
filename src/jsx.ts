@@ -1,4 +1,3 @@
-import { CustomHTMLElement } from "./ce.js";
 
 function toDash(name: string) {
   return name
