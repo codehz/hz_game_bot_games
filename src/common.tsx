@@ -141,7 +141,7 @@ export class StyledButton extends CustomHTMLElement {
 @shadow(
   <dialog id="dialog">
     <div class="container">
-      <h2 id="title"></h2>
+      <h2 id="title" />
       <slot />
       <div class="bottombar">
         <StyledButton id="cancel">取消</StyledButton>
@@ -186,7 +186,6 @@ export class StyledButton extends CustomHTMLElement {
     padding: 20px 0;
     display: grid;
     grid-template-rows: max-content 1fr max-content;
-    gap: 10px;
     width: calc(100% - 80px);
     max-width: 600px;
     max-height: inherit;
@@ -199,6 +198,9 @@ export class StyledButton extends CustomHTMLElement {
     overflow-y: auto;
     overscroll-behavior: contain;
     flex: 1;
+    gap: 10px;
+    padding: 10px;
+    margin: 0 -10px;
   }
 
   .bottombar {
@@ -277,13 +279,13 @@ export class DialogForm extends CustomHTMLElement {
     this.dialog.animate(
       [
         {
-          transform: "translateY(100%)"
+          transform: "translateY(100%)",
         },
         {
-          transform: "translateY(0)"
+          transform: "translateY(0)",
         },
       ],
-      { duration: 200, easing: 'ease-in' }
+      { duration: 200, easing: "ease-in" }
     );
     return new Promise<void>((resolve, reject) => {
       this.#resolver = { resolve, reject };
@@ -467,6 +469,8 @@ export class SimpleRouter<T extends string = string> extends CustomHTMLElement {
     user-select: none;
     background: var(--theme-color);
     cursor: pointer;
+    position: sticky;
+    top: 0;
   }
 
   #tabbar > .item {
