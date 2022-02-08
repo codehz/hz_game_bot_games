@@ -471,6 +471,7 @@ export class SimpleRouter<T extends string = string> extends CustomHTMLElement {
     cursor: pointer;
     position: sticky;
     top: 0;
+    z-index: 1;
   }
 
   #tabbar > .item {
@@ -492,6 +493,7 @@ export class SimpleRouter<T extends string = string> extends CustomHTMLElement {
 
   ::slotted([data-tab]) {
     padding: 10px;
+    z-index: 0;
   }
 
   ::slotted([data-tab]:not(.active)) {
