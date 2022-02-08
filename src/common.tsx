@@ -5,6 +5,7 @@ import {
   id,
   listen,
   listen_at,
+  listen_host,
   mount,
   prop,
   select,
@@ -152,19 +153,26 @@ export class StyledButton extends CustomHTMLElement {
 )
 @css`
   dialog::backdrop {
-    background: #000c;
+    background: none;
   }
   dialog {
     background: var(--theme-color);
     border: none;
     padding: 0;
-    margin-left: 0;
-    margin-right: 0;
-    width: 100%;
+    margin: 0;
+    top: unset;
+    bottom: 0;
+    width: 100vw;
     max-width: unset;
+    max-height: calc(100vh - 50px);
     box-sizing: border-box;
     --fgcolor: white;
     --bgcolor: var(--theme-color);
+    box-shadow: 0 0 0 2px white;
+  }
+
+  dialog[open] {
+    display: grid;
   }
 
   h2 {
@@ -174,12 +182,23 @@ export class StyledButton extends CustomHTMLElement {
   }
 
   .container {
-    margin: 20px auto;
-    display: flex;
+    margin: 0 auto;
+    padding: 20px 0;
+    display: grid;
+    grid-template-rows: max-content 1fr max-content;
     gap: 10px;
-    flex-direction: column;
     width: calc(100% - 80px);
     max-width: 600px;
+    max-height: inherit;
+    box-sizing: border-box;
+  }
+
+  slot {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    flex: 1;
   }
 
   .bottombar {
@@ -255,6 +274,17 @@ export class DialogForm extends CustomHTMLElement {
 
   open() {
     this.dialog.showModal();
+    this.dialog.animate(
+      [
+        {
+          transform: "translateY(100%)"
+        },
+        {
+          transform: "translateY(0)"
+        },
+      ],
+      { duration: 200, easing: 'ease-in' }
+    );
     return new Promise<void>((resolve, reject) => {
       this.#resolver = { resolve, reject };
     });
@@ -281,6 +311,7 @@ export class DialogForm extends CustomHTMLElement {
     box-sizing: border-box;
     box-shadow: 0 0 0 2px #0002;
     background: #fff;
+    overflow: hidden;
   }
   dialog::backdrop {
     background: none;

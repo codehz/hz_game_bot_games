@@ -1,3 +1,21 @@
+@property --theme-color {
+  syntax: "<color>";
+  initial-value: black;
+  inherits: true;
+}
+
+@property --fgcolor {
+  syntax: "<color>";
+  initial-value: black;
+  inherits: true;
+}
+
+@property --bgcolor {
+  syntax: "<color>";
+  initial-value: white;
+  inherits: true;
+}
+
 html,
 body {
   margin: 0;

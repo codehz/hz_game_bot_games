@@ -51,7 +51,20 @@ import {
   }
 
   table {
-    border-collapse: collapse;
+    min-width: 100%;
+    overflow-x: auto;
+    display: grid;
+    grid-template-columns: max-content max-content max-content minmax(max-content, 1fr);
+  }
+
+  thead,
+  tbody,
+  tr {
+    display: contents;
+  }
+
+  th, td {
+    padding: 2px 4px;
   }
 
   th:nth-child(even),
@@ -59,13 +72,29 @@ import {
     background: #ccc7;
   }
 
+  td {
+    position: relative;
+  }
+
+  td:before {
+    content: '';
+    position: absolute;
+    display: block;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: var(--hover, 0);
+    background: #0001;
+    transition: height ease .1s;
+  }
+
   .line {
     cursor: help;
   }
 
   .line:hover {
-    background-color: var(--theme-color);
-    color: white;
+    --hover: 100%;
   }
 
   #error {
@@ -304,6 +333,7 @@ export class HighScoresUser extends CustomHTMLElement {
             data-type="username"
             href={`https://t.me/${username}`}
             target="_blank"
+            tabindex="-1"
           >
             {username}
           </a>
