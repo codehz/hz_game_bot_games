@@ -29,6 +29,7 @@ import {
     <table id="container">
       <thead>
         <tr>
+          <th>游戏</th>
           <th>会话</th>
           <th>玩家</th>
           <th>分数</th>
@@ -54,7 +55,7 @@ import {
     min-width: 100%;
     overflow-x: auto;
     display: grid;
-    grid-template-columns: max-content max-content max-content minmax(max-content, 1fr);
+    grid-template-columns: repeat(4, max-content) minmax(max-content, 1fr);
   }
 
   thead,
@@ -63,7 +64,8 @@ import {
     display: contents;
   }
 
-  th, td {
+  th,
+  td {
     padding: 2px 4px;
   }
 
@@ -77,7 +79,7 @@ import {
   }
 
   td:before {
-    content: '';
+    content: "";
     position: absolute;
     display: block;
     left: 0;
@@ -86,7 +88,7 @@ import {
     transform: translateY(-50%);
     height: var(--hover, 0);
     background: #0001;
-    transition: height ease .1s;
+    transition: height ease 0.1s;
   }
 
   .line {
@@ -141,9 +143,8 @@ export class LogPanelPage extends CustomHTMLElement {
       this.content.replaceChildren(
         ...list.map((item) => (
           <tr class="line" _={{ item }}>
-            <td>
-              {item.game}({item.session_id})
-            </td>
+            <td>{item.game}</td>
+            <td>{item.session_id}</td>
             <td>{item.user_id}</td>
             <td>{item.score}</td>
             <td>{LogPanelPage.format.format(item.time)}</td>
