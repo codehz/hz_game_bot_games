@@ -8,7 +8,7 @@ import {
 } from "/js/ce.js";
 import jsx from "/js/jsx.js";
 
-class AtlasDescriptor {
+export class AtlasDescriptor {
   constructor(
     public name: string,
     public x: number,
@@ -17,15 +17,15 @@ class AtlasDescriptor {
     public height: number
   ) {}
 
-  blit(ctx: CanvasRenderingContext2D, image: ImageBitmap) {
+  blit(ctx: CanvasRenderingContext2D, image: ImageBitmap, x = 0, y = 0) {
     ctx.drawImage(
       image,
       this.x,
       this.y,
       this.width,
       this.height,
-      0,
-      0,
+      x,
+      y,
       this.width,
       this.height
     );

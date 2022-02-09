@@ -9,6 +9,8 @@ const $host_listeners = Symbol("host_listeners");
 const $listeners = Symbol("listeners");
 const $closest_listeners = Symbol("closest_listeners");
 const $direct_listeners = Symbol("direct_listeners");
+const $attach_listeners = Symbol("attach_listeners");
+const $tags = Symbol("tags");
 const $frame = Symbol("frame");
 
 export function cloneNode(node: Node): Node {
@@ -22,6 +24,7 @@ export function cloneNode(node: Node): Node {
 }
 
 export abstract class CustomHTMLElement extends HTMLElement {
+  [$tags]?: string[];
   [$selector]?: Map<string, { selector: string; all: boolean } | string>;
   [$template]?: Node;
   [$shadow]?: Node;
@@ -33,8 +36,28 @@ export abstract class CustomHTMLElement extends HTMLElement {
   [$listeners]?: Record<string, { selector?: string; name: string }[]>;
   [$closest_listeners]?: { name: string; event: string; selector: string }[];
   [$direct_listeners]?: { name: string; event: string; selector: string }[];
+  [$attach_listeners]?: { name: string; event: string; selector: string }[];
   [$frame]?: number;
   #listeners: { node: Node; event: string; listener: EventListener }[] = [];
+  #attached_listeners: {
+    node: CustomHTMLElement;
+    event: string;
+    listener: Function;
+  }[] = [];
+  #handlers: Record<string, Function[]> = {};
+
+  on(event: string, handler: Function) {
+    const handlers = this.#handlers[event] ?? [];
+    this.#handlers[event] = [...handlers, handler];
+  }
+
+  off(event: string, handler: Function) {
+    this.#handlers[event] = this.#handlers[event]!.filter((x) => x != handler);
+  }
+
+  emit(event: string, ...args: any[]) {
+    this.#handlers[event]?.forEach((handler) => handler.apply(this, args));
+  }
 
   protected set shadowTemplate(shadow: Node) {
     const root = this.shadowRoot ?? this.attachShadow({ mode: "open" });
@@ -98,6 +121,8 @@ export abstract class CustomHTMLElement extends HTMLElement {
     this[$host_listeners]?.forEach(({ name, event }) =>
       this.addEventListener(event, (this as any)[name].bind(this))
     );
+
+    this[$tags]?.forEach((name) => this.setAttribute(name, ""));
   }
 
   attributeChangedCallback(name: string, old: string, value: string) {
@@ -134,6 +159,20 @@ export abstract class CustomHTMLElement extends HTMLElement {
     this[$mounts]?.forEach((name) =>
       typeof name == "string" ? (this as any)[name](obj) : name.call(this, obj)
     );
+    this[$attach_listeners]?.forEach(({ name, event, selector }) => {
+      let node: Node | null | undefined;
+      if (selector.startsWith("<")) {
+        selector = selector.slice(1);
+        node = this.closest(selector);
+      } else {
+        node = this.shadowRoot?.querySelector(selector);
+      }
+      if (node != null && node instanceof CustomHTMLElement) {
+        const listener = (...args: any[]) => (this as any)[name](...args);
+        node.on(event, listener);
+        this.#attached_listeners.push({ node, event, listener });
+      }
+    });
   }
 
   disconnectedCallback() {
@@ -147,6 +186,27 @@ export abstract class CustomHTMLElement extends HTMLElement {
       this.#listeners = [];
       this.shadowRoot!.replaceChildren();
     }
+    this.#attached_listeners.forEach(({ node, event, listener }) => {
+      node.off(event, listener);
+    });
+  }
+}
+
+export class ClonableElement<T> extends CustomHTMLElement {
+  #data: T;
+  constructor(data: T & { id?: string }) {
+    super();
+    if (data.id) this.id = data.id;
+    this.#data = data;
+  }
+
+  get data() {
+    return this.#data;
+  }
+
+  cloneNode() {
+    const clazz = Object.getPrototypeOf(this).constructor;
+    return new clazz(this.#data);
   }
 }
 
@@ -156,6 +216,9 @@ export const customElement =
     if (cls.prototype instanceof CustomHTMLElement) {
       const observed = cls.prototype[$observed] ?? {};
       (cls as any)["observedAttributes"] = Object.keys(observed);
+      if (cls.prototype instanceof ClonableElement) {
+        Object.defineProperty(cls, "length", { value: 1 });
+      }
     }
     console.log(
       "%c register %c %s %s",
@@ -178,6 +241,13 @@ export const shadow =
   (content: Node) =>
   <T extends CustomHTMLElement>(cls: new (...args: any[]) => T) => {
     cls.prototype[$shadow] = content;
+  };
+
+export const tag =
+  (...tags: string[]) =>
+  <T extends CustomHTMLElement>(cls: new (...args: any[]) => T) => {
+    const list = cls.prototype[$tags] ?? [];
+    cls.prototype[$tags] = [...list, ...tags];
   };
 
 export function css(strings: TemplateStringsArray, ...values: any[]) {
@@ -329,4 +399,11 @@ export const listen_at =
   <T extends CustomHTMLElement>(target: T, key: string) => {
     let list = target[$direct_listeners] ?? [];
     target[$direct_listeners] = [...list, { event, selector, name: key }];
+  };
+
+export const attach =
+  (event: string, selector: string) =>
+  <T extends CustomHTMLElement>(target: T, key: string) => {
+    let list = target[$attach_listeners] ?? [];
+    target[$attach_listeners] = [...list, { event, selector, name: key }];
   };
