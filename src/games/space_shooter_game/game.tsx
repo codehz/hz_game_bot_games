@@ -87,7 +87,7 @@ export class GameContent extends CustomHTMLElement {
 
   @attach("prepare", "#canvas")
   on_hook() {
-    if (this.#offset) {
+    if (this.#offset && this.#current) {
       const [dx, dy] = [
         this.#current.x - this.#offset.x,
         this.#current.y - this.#offset.y,
