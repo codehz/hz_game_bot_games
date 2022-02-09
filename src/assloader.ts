@@ -1,3 +1,4 @@
+import { reportProgress } from "/js/loading.js";
 import JSZip from "/deps/jszip.js";
 
 function splitFilename(filename: string): [string, string] {
@@ -18,7 +19,7 @@ export default class AssLoader {
   #audioctx = new AudioContext();
   #fonts = new Map<string, FontFace>();
   #audios = new Map<string, AudioBuffer>();
-  #images = new Map<string, HTMLImageElement>();
+  #images = new Map<string, ImageBitmap>();
   #xmls = new Map<string, Document>();
 
   getFont(name: string) {
@@ -35,8 +36,10 @@ export default class AssLoader {
   }
 
   static async load(url: string) {
+    reportProgress("loading assets");
     const resp = await fetch(url);
     const buff = await resp.arrayBuffer();
+    reportProgress("decoding assets");
     const zip = await JSZip.loadAsync(buff);
     const ret = new AssLoader();
     await Promise.all(
@@ -46,12 +49,15 @@ export default class AssLoader {
         switch (ext) {
           case ".ttf": {
             const data = await file.async("arraybuffer");
+            const fontname = filename.replace(/_/g, " ");
             const fontface = await new FontFace(
               filename.replace(/_/g, " "),
               data
             ).load();
+            document.fonts.add(fontface);
             ret.#fonts.set(filename, fontface);
-            console.log("loaded font %s", name);
+            console.log("loaded font %s -> %s", name, fontname);
+            reportProgress(name);
             break;
           }
           case ".ogg": {
@@ -59,6 +65,7 @@ export default class AssLoader {
             const audio = await ret.#audioctx.decodeAudioData(buffer);
             ret.#audios.set(filename, audio);
             console.log("loaded audio %s", name);
+            reportProgress(name);
             break;
           }
           case ".png": {
@@ -73,8 +80,9 @@ export default class AssLoader {
                   img.onerror = reject;
                 })
             );
-            ret.#images.set(filename, img);
+            ret.#images.set(filename, await createImageBitmap(img));
             console.log("loaded image %s", name);
+            reportProgress(name);
             break;
           }
           case ".xml": {
@@ -82,11 +90,13 @@ export default class AssLoader {
             const doc = new DOMParser().parseFromString(txt, "text/xml");
             ret.#xmls.set(filename, doc);
             console.log("loaded xml %s", name);
+            reportProgress(name);
             break;
           }
         }
       })
     );
+    reportProgress("assets loaded");
     return ret;
   }
 }

@@ -64,7 +64,7 @@ document.head.appendChild(css`
     justify-content: center;
     align-items: center;
 
-    --box-background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M15 5L5 15v70l10 10h70l10-10V15L85 5z' fill='%230001'/%3E%3C/svg%3E");
+    --box-background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M15 5L5 15v70l10 10h70l10-10V15L85 5z' fill='%23fffc'/%3E%3C/svg%3E");
   }
   #game-stage {
     width: 100vmin;
@@ -92,7 +92,7 @@ document.head.appendChild(css`
     transition: all ease 0.1s;
   }
   #game-stage > .trackpad > .track.active {
-    background-color: #0001;
+    background-color: #fff1;
   }
   #game-stage > .trackpad.highlight > .track.active {
     background-color: #cc2307;
@@ -110,7 +110,7 @@ document.head.appendChild(css`
     width: fit-content;
     padding: 4px 8px;
     border-radius: 3px;
-    background: #ffffffcc;
+    background: #fff3;
     border: 1px solid #b4b4b4;
     font-size: 150%;
     backdrop-filter: blur(20px);
@@ -125,8 +125,8 @@ document.head.appendChild(css`
     align-items: center;
     justify-content: center;
     z-index: 1;
-    background-image: radial-gradient(#000c 0.5px, transparent 0.5px),
-      radial-gradient(#000c 0.5px, #fffc 0.5px);
+    background-image: radial-gradient(#0007 0.5px, transparent 0.5px),
+      radial-gradient(#0007 0.5px, #0007 0.5px);
     background-size: 20px 20px;
     background-position: 0 0, 10px 10px;
   }
@@ -206,8 +206,8 @@ document.head.appendChild(css`
     font-size: 60%;
     padding: 2px 4px;
     border-radius: 4px;
-    border: 2px solid black;
-    background-color: white;
+    border: 2px solid var(--fgcolor);
+    background-color: var(--bgcolor);
     right: -47px;
     top: -11px;
     transform: rotate(40deg);
@@ -217,8 +217,8 @@ document.head.appendChild(css`
   }
   .game-title > .specialrule {
     display: inline-block;
-    background-color: black;
-    color: white;
+    background-color: var(--fgcolor);
+    color: var(--bgcolor);
     padding: 4px 8px;
     position: relative;
   }
@@ -227,8 +227,8 @@ document.head.appendChild(css`
     position: absolute;
     top: 0;
     left: 0;
-    border-top: 8px solid white;
-    border-right: 8px solid black;
+    border-top: 8px solid var(--bgcolor);
+    border-right: 8px solid var(--fgcolor);
     width: 0;
   }
   .game-title > .specialrule::after {
@@ -236,8 +236,8 @@ document.head.appendChild(css`
     position: absolute;
     bottom: 0;
     right: 0;
-    border-bottom: 8px solid white;
-    border-left: 8px solid black;
+    border-bottom: 8px solid var(--bgcolor);
+    border-left: 8px solid var(--fgcolor);
     width: 0;
   }
   .game-title > button {

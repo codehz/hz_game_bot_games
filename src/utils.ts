@@ -23,3 +23,12 @@ export function debounce<T extends Function>(cb: T, wait = 100) {
     h = setTimeout(() => cb(...args), wait);
   }) as unknown as T;
 }
+
+export function splitImportURL(urlstr: string) {
+  const url = new URL(urlstr);
+  const matched = url.pathname.match(/\/js\/games\/(?<name>[^\/]+)\/.*\.js/);
+  const name = matched?.groups?.name;
+  if (name == null) throw new Error("invalid url");
+  const ver = url.search.slice(1);
+  return { name, ver };
+}

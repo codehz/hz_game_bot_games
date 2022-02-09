@@ -26,5 +26,5 @@ if (location.pathname.includes("mock")) {
   score = (score: number) => reqeust("SCORE", score + "");
   const { game } = getData<{ game: string }>();
   const [name, ver] = game.split(/_game_?/, 2);
-  import(`./games/${name}_game.js?${ver ?? ""}`);
+  import(`./games/${name}_game/index.js?${ver ?? ""}`);
 }
