@@ -1,15 +1,12 @@
 import jsx from "/js/jsx.js";
 import { customElement, css, CustomHTMLElement, shadow } from "/js/ce.js";
-import { TextureAtlas, AtlasViewer } from "/js/atlas.js";
-import { assets } from "./index.js";
-
-const img = assets.getImage("sheet")!;
-const atlas = new TextureAtlas(assets.getXml("sheet")!);
+import { AtlasViewer } from "/js/atlas.js";
+import { atlas, sheet } from "./loader.js";
 
 @customElement("game-content")
 @shadow(
   <>
-    <AtlasViewer image={img} atlas={atlas} />
+    <AtlasViewer image={sheet} atlas={atlas} />
   </>
 )
 @css`
