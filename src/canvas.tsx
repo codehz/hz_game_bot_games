@@ -78,6 +78,7 @@ export class GameCanvas extends CustomHTMLElement {
 export class SimpleSprite extends ClonableElement<{
   x: number;
   y: number;
+  opacity?: number;
   rotate?: number;
   scale?: number;
   atlas: AtlasDescriptor;
@@ -85,12 +86,14 @@ export class SimpleSprite extends ClonableElement<{
 }> {
   @attach("frame", "<[canvas-context]")
   render(ctx: CanvasRenderingContext2D) {
-    const { x, y, rotate = 0, scale = 1, atlas, image } = this.data;
+    const { x, y, opacity = 1, rotate = 0, scale = 1, atlas, image } = this.data;
+    if (opacity <= 0) return;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(rotate);
     ctx.scale(scale, scale);
     ctx.translate(-atlas.width / 2, -atlas.height / 2);
+    ctx.globalAlpha = opacity;
     atlas.blit(ctx, image);
     ctx.restore();
   }
