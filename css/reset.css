@@ -16,11 +16,16 @@
   inherits: true;
 }
 
-html,
 body {
   margin: 0;
   padding: 0;
-  touch-action: manipulation;
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+html {
+  margin: 0;
+  padding: 0;
   --theme-color: #33125a;
   --fgcolor: white;
   --bgcolor: black;
