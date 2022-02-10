@@ -210,6 +210,13 @@ export class ClonableElement<T> extends CustomHTMLElement {
   }
 }
 
+export class ClonableElementWithChildren<T> extends ClonableElement<T> {
+  constructor(data: T & { id?: string, children: Element[] }) {
+    super(data);
+    this.replaceChildren(...data.children.map(cloneNode));
+  }
+}
+
 export const customElement =
   (name: string) =>
   <T extends CustomElementConstructor>(cls: T) => {

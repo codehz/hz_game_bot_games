@@ -2,6 +2,7 @@ import { AtlasDescriptor } from "/js/atlas.js";
 import {
   attach,
   ClonableElement,
+  ClonableElementWithChildren,
   css,
   customElement,
   CustomHTMLElement,
@@ -85,7 +86,15 @@ export class SimpleSprite extends ClonableElement<{
 }> {
   @attach("frame", "<[canvas-context]")
   render(ctx: CanvasRenderingContext2D) {
-    const { x, y, opacity = 1, rotate = 0, scale = 1, atlas, image } = this.data;
+    const {
+      x,
+      y,
+      opacity = 1,
+      rotate = 0,
+      scale = 1,
+      atlas,
+      image,
+    } = this.data;
     if (opacity <= 0) return;
     ctx.save();
     ctx.translate(x, y);
@@ -94,6 +103,26 @@ export class SimpleSprite extends ClonableElement<{
     ctx.translate(-atlas.width / 2, -atlas.height / 2);
     ctx.globalAlpha = opacity;
     atlas.blit(ctx, image);
+    ctx.restore();
+  }
+}
+
+@customElement("transform-context")
+@tag("canvas-context")
+export class TransformContext extends ClonableElementWithChildren<{
+  x?: number;
+  y?: number;
+  rotate?: number;
+  scale?: number;
+}> {
+  @attach("frame", "<[canvas-context]")
+  wrap_frame(ctx: CanvasRenderingContext2D) {
+    const { x = 0, y = 0, rotate, scale } = this.data;
+    ctx.save();
+    ctx.translate(x, y);
+    if (rotate) ctx.rotate(rotate);
+    if (scale) ctx.scale(scale, scale);
+    this.emit("frame", ctx);
     ctx.restore();
   }
 }

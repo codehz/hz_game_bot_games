@@ -10,28 +10,30 @@ import {
   frame,
   attach,
 } from "/js/ce.js";
-import { GameCanvas, SimpleSprite } from "/js/canvas.js";
+import { GameCanvas, SimpleSprite, TransformContext } from "/js/canvas.js";
 import { atlas, sheet } from "./loader.js";
 
 @customElement("game-content")
 @shadow(
   <>
     <GameCanvas id="canvas">
-      <SimpleSprite
-        id="ghost"
-        x={0}
-        y={0}
-        opacity={0}
-        atlas={atlas.get("laserGreen14")!}
-        image={sheet}
-      />
-      <SimpleSprite
-        id="player"
-        x={0}
-        y={0}
-        atlas={atlas.get("laserGreen14")!}
-        image={sheet}
-      />
+      <TransformContext id="stage">
+        <SimpleSprite
+          id="ghost"
+          x={0}
+          y={0}
+          opacity={0}
+          atlas={atlas.get("laserGreen14")!}
+          image={sheet}
+        />
+        <SimpleSprite
+          id="player"
+          x={0}
+          y={0}
+          atlas={atlas.get("laserGreen14")!}
+          image={sheet}
+        />
+      </TransformContext>
     </GameCanvas>
   </>
 )
