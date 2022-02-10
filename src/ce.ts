@@ -73,7 +73,7 @@ export abstract class CustomHTMLElement extends HTMLElement {
           for (const { selector, name } of arr) {
             if (selector) {
               const target = e.target as HTMLElement;
-              const matched = target.closest(selector);
+              const matched = target.parentElement?.closest(selector);
               if (matched) {
                 Object.defineProperty(e, "currentTarget", {
                   enumerable: false,
@@ -142,7 +142,7 @@ export abstract class CustomHTMLElement extends HTMLElement {
       this.replaceChildren(cloneNode(template));
     }
     this[$closest_listeners]?.forEach(({ name, event, selector }) => {
-      const target = this.closest(selector);
+      const target = this.parentElement?.closest(selector);
       if (target) {
         const listener = (this as any)[name].bind(this);
         target.addEventListener(event, listener);
@@ -163,7 +163,7 @@ export abstract class CustomHTMLElement extends HTMLElement {
       let node: Node | null | undefined;
       if (selector.startsWith("<")) {
         selector = selector.slice(1);
-        node = this.closest(selector);
+        node = this.parentElement?.closest(selector);
       } else {
         node = this.shadowRoot?.querySelector(selector);
       }
@@ -211,7 +211,7 @@ export class ClonableElement<T> extends CustomHTMLElement {
 }
 
 export class ClonableElementWithChildren<T> extends ClonableElement<T> {
-  constructor(data: T & { id?: string, children: Element[] }) {
+  constructor(data: T & { id?: string; children: Element[] }) {
     super(data);
     this.replaceChildren(...data.children.map(cloneNode));
   }
