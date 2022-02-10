@@ -87,7 +87,7 @@ export class GameContent extends CustomHTMLElement {
     const scale = this.canvas.scale;
     x /= scale;
     y /= scale;
-    this.#offset = { x, y };
+    this.#current = this.#offset = { x, y };
     Object.assign(this.ghost.data, { ...this.player.data, opacity: 0.2 });
     // TODO: Start game
   }
