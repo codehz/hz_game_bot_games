@@ -37,13 +37,30 @@ import { atlas, sheet } from "./loader.js";
 )
 @css`
   :host {
-    display: block;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100vw;
     height: 100vh;
+    background: #222;
   }
 
   atlas-viewer {
     padding: 10px;
+  }
+
+  #canvas {
+    height: 150vw;
+    width: 100vw;
+    overflow: none;
+    background: #000;
+  }
+
+  @media (min-aspect-ratio: 2/3) {
+    #canvas {
+      height: 100vh;
+      width: calc(100vh * 2 / 3);
+    }
   }
 `
 export class GameContent extends CustomHTMLElement {

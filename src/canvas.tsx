@@ -20,8 +20,6 @@ import jsx from "/js/jsx.js";
 @css`
   :host {
     display: block;
-    width: 100%;
-    height: 100%;
   }
   canvas {
     display: block;
@@ -68,8 +66,9 @@ export class GameCanvas extends CustomHTMLElement {
     this.emit("prepare");
     this.ctx.resetTransform();
     this.ctx.scale(devicePixelRatio, devicePixelRatio);
-    this.ctx.fillStyle = "black";
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    // this.ctx.fillStyle = "black";
+    // this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     this.emit("frame", this.ctx);
   }
 }
