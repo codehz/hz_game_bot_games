@@ -32,6 +32,12 @@ export class GameCanvas extends CustomHTMLElement {
 
   ctx!: CanvasRenderingContext2D;
 
+  #scale: number = 1;
+
+  get scale() {
+    return this.#scale / devicePixelRatio;
+  }
+
   #resizeObserver = new ResizeObserver(
     ([
       {
@@ -49,6 +55,7 @@ export class GameCanvas extends CustomHTMLElement {
         height: `${rheight}px`,
       });
       Object.assign(this.canvas, { width, height });
+      this.#scale = width / 100;
     }
   );
 
@@ -66,10 +73,8 @@ export class GameCanvas extends CustomHTMLElement {
   on_frame() {
     this.emit("prepare");
     this.ctx.resetTransform();
-    this.ctx.scale(devicePixelRatio, devicePixelRatio);
+    this.ctx.scale(this.#scale, this.#scale);
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    // this.ctx.fillStyle = "black";
-    // this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     this.emit("frame", this.ctx);
   }
 }

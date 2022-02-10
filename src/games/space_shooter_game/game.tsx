@@ -9,6 +9,7 @@ import {
   listen,
   frame,
   attach,
+  listen_host,
 } from "/js/ce.js";
 import { GameCanvas, SimpleSprite, TransformContext } from "/js/canvas.js";
 import { atlas, sheet } from "./loader.js";
@@ -17,23 +18,23 @@ import { atlas, sheet } from "./loader.js";
 @shadow(
   <>
     <GameCanvas id="canvas">
-      <TransformContext id="stage">
-        <SimpleSprite
-          id="ghost"
-          x={0}
-          y={0}
-          opacity={0}
-          atlas={atlas.get("laserGreen14")!}
-          image={sheet}
-        />
-        <SimpleSprite
-          id="player"
-          x={0}
-          y={0}
-          atlas={atlas.get("laserGreen14")!}
-          image={sheet}
-        />
-      </TransformContext>
+      <SimpleSprite
+        id="ghost"
+        x={0}
+        y={0}
+        opacity={0}
+        scale={0.2}
+        atlas={atlas.get("playerShip1_blue")!}
+        image={sheet}
+      />
+      <SimpleSprite
+        id="player"
+        x={0}
+        y={0}
+        scale={0.2}
+        atlas={atlas.get("playerShip1_blue")!}
+        image={sheet}
+      />
     </GameCanvas>
   </>
 )
@@ -80,17 +81,23 @@ export class GameContent extends CustomHTMLElement {
   #speed = { x: 0, y: 0 };
   #maxspeed = 10;
 
-  @listen("pointerdown")
+  @listen_host("pointerdown")
   on_click({ x, y, isPrimary }: PointerEvent) {
     if (!isPrimary) return;
+    const scale = this.canvas.scale;
+    x /= scale;
+    y /= scale;
     this.#offset = { x, y };
     Object.assign(this.ghost.data, { ...this.player.data, opacity: 0.2 });
     // TODO: Start game
   }
 
-  @listen("pointermove")
+  @listen_host("pointermove")
   on_move({ x, y, isPrimary }: PointerEvent) {
     if (!isPrimary) return;
+    const scale = this.canvas.scale;
+    x /= scale;
+    y /= scale;
     this.#current = { x, y };
   }
 
@@ -135,9 +142,9 @@ export class GameContent extends CustomHTMLElement {
     }
   }
 
-  @listen("pointerup")
-  @listen("pointercancel")
-  @listen("pointerout")
+  @listen_host("pointerup")
+  @listen_host("pointercancel")
+  @listen_host("pointerout")
   on_cancel({ isPrimary }: PointerEvent) {
     if (!isPrimary) return;
     this.#offset = undefined;
