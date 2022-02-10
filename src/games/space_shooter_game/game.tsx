@@ -45,6 +45,7 @@ import { atlas, sheet } from "./loader.js";
     align-items: center;
     width: 100vw;
     height: 100vh;
+    height: -webkit-fill-available;
     background: #222;
   }
 
