@@ -5,9 +5,6 @@ import {
   CustomHTMLElement,
   shadow,
   id,
-  mount,
-  listen,
-  frame,
   attach,
   listen_host,
 } from "/js/ce.js";
@@ -45,7 +42,6 @@ import { atlas, sheet } from "./loader.js";
     align-items: center;
     width: 100vw;
     height: 100vh;
-    height: -webkit-fill-available;
     background: #222;
   }
 

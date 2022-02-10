@@ -8,7 +8,6 @@ import {
   CustomHTMLElement,
   frame,
   mount,
-  prop,
   select,
   shadow,
   tag,
