@@ -1,7 +1,9 @@
 import jsx from "/js/jsx.js";
 import { customElement, css, CustomHTMLElement, shadow } from "/js/ce.js";
 import { AtlasViewer } from "/js/atlas.js";
-import { atlas, sheet } from "./loader.js";
+import loading from "./loader.js";
+
+const { sheet, atlas } = await loading;
 
 @customElement("game-content")
 @shadow(

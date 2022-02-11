@@ -9,7 +9,9 @@ import {
   listen_host,
 } from "/js/ce.js";
 import { GameCanvas, SimpleSprite, TransformContext } from "/js/canvas.js";
-import { atlas, sheet } from "./loader.js";
+import loading from "./loader.js";
+
+const { sheet, atlas } = await loading;
 
 @customElement("game-content")
 @shadow(

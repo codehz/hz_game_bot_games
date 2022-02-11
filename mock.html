@@ -7,12 +7,17 @@
   <meta name="color-scheme" content="dark">
   <link rel="stylesheet" href="css/reset.css">
   <link rel="icon" href="data:,">
+  <link rel="modulepreload" href="/deps/games.js">
+  <link rel="modulepreload" href="/js/ce.js">
+  <link rel="modulepreload" href="/js/loading.js">
+  <link rel="modulepreload" href="/js/utils.js">
+  <link rel="modulepreload" href="/js/jsx.js">
+  <link rel="modulepreload" href="/js/index.js">
+  <link rel="modulepreload" href="/js/mock.js">
   <script type="module">
     if (!("adoptedStyleSheets" in document)) await import("/deps/css.js");
+    await import("/js/mock.js")
   </script>
-  <script type="module" src="deps/games.js"></script>
-  <script type="module" src="js/loading.js"></script>
-  <script type="module" src="js/mock.js"></script>
   <title>Document</title>
 </head>
 
