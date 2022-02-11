@@ -17,8 +17,8 @@ import { atlas, sheet } from "./loader.js";
     <GameCanvas id="canvas">
       <SimpleSprite
         id="ghost"
-        x={0}
-        y={0}
+        x={50}
+        y={100}
         opacity={0}
         scale={0.2}
         atlas={atlas.get("playerShip1_blue")!}
@@ -26,8 +26,8 @@ import { atlas, sheet } from "./loader.js";
       />
       <SimpleSprite
         id="player"
-        x={0}
-        y={0}
+        x={50}
+        y={100}
         scale={0.2}
         atlas={atlas.get("playerShip1_blue")!}
         image={sheet}
@@ -75,6 +75,7 @@ export class GameContent extends CustomHTMLElement {
 
   #offset?: { x: number; y: number };
   #current!: { x: number; y: number };
+  #ghost?: { x: number; y: number };
   #speed = { x: 0, y: 0 };
   #maxspeed = 10;
 
@@ -86,6 +87,7 @@ export class GameContent extends CustomHTMLElement {
     y /= scale;
     this.#current = this.#offset = { x, y };
     Object.assign(this.ghost.data, { ...this.player.data, opacity: 0.2 });
+    this.#ghost = { x: this.ghost.data.x, y: this.ghost.data.y };
     // TODO: Start game
   }
 
@@ -108,18 +110,16 @@ export class GameContent extends CustomHTMLElement {
     };
   }
 
-  @attach("prepare", "#canvas")
-  on_hook() {
-    if (this.#offset && this.#current) {
-      const [dx, dy] = [
-        this.#current.x - this.#offset.x,
-        this.#current.y - this.#offset.y,
-      ];
-      this.#offset = this.#current;
-      this.ghost.data.x += dx;
-      this.ghost.data.y += dy;
+  #move_ghost() {
+    if (this.#ghost) {
+      let { x, y } = this.#ghost;
+      x = Math.min(Math.max(x, 10), 90);
+      y = Math.min(Math.max(y, 10), 140);
+      Object.assign(this.ghost.data, { x, y });
     }
+  }
 
+  #move_player() {
     const [gdx, gdy] = [
       this.ghost.data.x - this.player.data.x,
       this.ghost.data.y - this.player.data.y,
@@ -127,7 +127,6 @@ export class GameContent extends CustomHTMLElement {
     const glen = (gdx ** 2 + gdy ** 2) ** 0.5;
     if (glen > 0) {
       this.#maxspeed = glen > 10 ? 10 : glen;
-      // const df = glen > 50 ? 10 : 0.5;
       const df = glen < 50 ? 0.5 + (glen / 50) * 4.5 : 5;
       this.#speed.x += (gdx / glen) * df;
       this.#speed.y += (gdy / glen) * df;
@@ -137,6 +136,37 @@ export class GameContent extends CustomHTMLElement {
     } else if (this.#offset == null) {
       this.ghost.data.opacity = 0;
     }
+  }
+
+  #limit_player() {
+    const { x, y } = this.player.data;
+    if (x < 10) {
+      this.#speed.x += 1;
+    } else if (x > 90) {
+      this.#speed.x -= 1;
+    }
+    if (y < 10) {
+      this.#speed.y += 1;
+    } else if (y > 140) {
+      this.#speed.y -= 1;
+    }
+  }
+
+  @attach("prepare", "#canvas")
+  on_hook() {
+    if (this.#offset && this.#current && this.#ghost) {
+      const [dx, dy] = [
+        this.#current.x - this.#offset.x,
+        this.#current.y - this.#offset.y,
+      ];
+      this.#offset = this.#current;
+      this.#ghost.x += dx;
+      this.#ghost.y += dy;
+    }
+
+    this.#move_ghost();
+    this.#move_player();
+    this.#limit_player();
   }
 
   @listen_host("pointerup")
