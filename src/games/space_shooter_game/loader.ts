@@ -1,6 +1,5 @@
 import AssLoader from "/js/assloader.js";
 import { TextureAtlas } from "/js/atlas.js";
-import { css } from "/js/html.js";
 
 export const assets = await AssLoader.load(
   "/assets/space_shooter_game/assets.zip"
@@ -17,9 +16,7 @@ if (cursor) {
   const ctx = canvas.getContext("2d")!;
   cursor.blit(ctx, sheet);
   const uri = canvas.toDataURL("image/png");
-  document.head.append(css`
-    html {
-      cursor: '${uri}'), aut;
-    }
-  `);
+  const css = document.createElement("style");
+  css.innerHTML = `html{cursor: url('${uri}'), auto}`;
+  document.head.append(css);
 }
