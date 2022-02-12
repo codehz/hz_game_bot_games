@@ -13,6 +13,7 @@ import {
   tag,
 } from "/js/ce.js";
 import jsx from "/js/jsx.js";
+import type { View } from "/js/ecs.js";
 
 @customElement("game-canvas")
 @tag("canvas-context")
@@ -25,7 +26,7 @@ import jsx from "/js/jsx.js";
     display: block;
   }
 `
-export class GameCanvas extends CustomHTMLElement {
+export default class GameCanvas extends CustomHTMLElement {
   @select("canvas")
   canvas!: HTMLCanvasElement;
 
@@ -78,55 +79,38 @@ export class GameCanvas extends CustomHTMLElement {
   }
 }
 
-@customElement("simple-sprite")
-export class SimpleSprite extends ClonableElement<{
-  x: number;
-  y: number;
-  opacity?: number;
-  rotate?: number;
-  scale?: number;
-  atlas: AtlasDescriptor;
+export function renderSprites<
+  V extends {
+    position: { x: number; y: number };
+    rotate: number;
+    scale: number;
+    opacity: number;
+    atlas: AtlasDescriptor;
+  }
+>({
+  view,
+  image,
+}: {
+  view: View<V>;
   image: ImageBitmap;
-}> {
-  @attach("frame", "<[canvas-context]")
-  render(ctx: CanvasRenderingContext2D) {
-    const {
-      x,
-      y,
-      opacity = 1,
-      rotate = 0,
-      scale = 1,
+}) {
+  return (ctx: CanvasRenderingContext2D) => {
+    for (const {
       atlas,
-      image,
-    } = this.data;
-    if (opacity <= 0) return;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(rotate);
-    ctx.scale(scale, scale);
-    ctx.translate(-atlas.width / 2, -atlas.height / 2);
-    ctx.globalAlpha = opacity;
-    atlas.blit(ctx, image);
-    ctx.restore();
-  }
-}
-
-@customElement("transform-context")
-@tag("canvas-context")
-export class TransformContext extends ClonableElementWithChildren<{
-  x?: number;
-  y?: number;
-  rotate?: number;
-  scale?: number;
-}> {
-  @attach("frame", "<[canvas-context]")
-  wrap_frame(ctx: CanvasRenderingContext2D) {
-    const { x = 0, y = 0, rotate, scale } = this.data;
-    ctx.save();
-    ctx.translate(x, y);
-    if (rotate) ctx.rotate(rotate);
-    if (scale) ctx.scale(scale, scale);
-    this.emit("frame", ctx);
-    ctx.restore();
-  }
+      position: { x, y },
+      rotate,
+      scale,
+      opacity,
+    } of view) {
+      const { width, height } = atlas;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotate);
+      ctx.scale(scale, scale);
+      ctx.translate(-width / 2, -height / 2);
+      ctx.globalAlpha = opacity;
+      atlas.blit(ctx, image);
+      ctx.restore();
+    }
+  };
 }

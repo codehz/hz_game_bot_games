@@ -1,10 +1,10 @@
-interface View {
+export interface ViewLike {
   readonly interests: string[];
   try_add(obj: object): void;
   remove(obj: object): void;
 }
 
-class SimpleView<C extends Record<string, any>> implements View {
+export class View<C extends Record<string, any>> implements ViewLike {
   #required: string[];
   #data: Set<C> = new Set();
 
@@ -41,16 +41,14 @@ type AutoProp<T extends Record<string, any>> = {
 export default class World<C extends Record<string, any>> {
   #template: C;
   #entities: Map<object, Partial<C> & AutoProp<C>> = new Map();
-  #views: View[] = [];
+  #views: ViewLike[] = [];
   #viewref: {
-    [key in keyof C]: View[];
+    [key in keyof C]: ViewLike[];
   } = {} as any;
 
   constructor(template: C) {
     this.#template = template;
-    for (const name in template) {
-      this.#viewref[name] = [];
-    }
+    for (const name in template) this.#viewref[name] = [];
   }
 
   #handler: ProxyHandler<object> = {
@@ -61,15 +59,12 @@ export default class World<C extends Record<string, any>> {
       if (key.startsWith("$")) {
         const rk = key.slice(1);
         if (rk in target) return Reflect.get(target, rk);
-        const ret = Object.create(this.#template[rk]);
+        let ret = this.#template[rk];
+        if (typeof ret === "object") ret = Object.create(ret);
         Reflect.set(target, rk, ret);
-        for (const view of this.#viewref[rk]) {
-          view.try_add(target);
-        }
+        for (const view of this.#viewref[rk]) view.try_add(target);
         return ret;
-      } else {
-        return Reflect.get(target, key);
-      }
+      } else return Reflect.get(target, key);
     },
     set: (target, key, value) => {
       if (typeof key == "symbol") return false;
@@ -95,20 +90,15 @@ export default class World<C extends Record<string, any>> {
 
   add(obj: Partial<C> = Object.create(null)): Partial<C> & AutoProp<C> {
     Object.setPrototypeOf(obj, null);
-    for (const key in obj) {
-      for (const view of this.#viewref[key]) {
-        view.try_add(obj);
-      }
-    }
+    for (const key in obj)
+      for (const view of this.#viewref[key]) view.try_add(obj);
     const proxy = new Proxy(obj, this.#handler) as Partial<C> & AutoProp<C>;
     this.#entities.set(obj, proxy);
     return proxy;
   }
 
   remove(obj: Partial<C>) {
-    for (const view of this.#views) {
-      view.remove(obj);
-    }
+    for (const view of this.#views) view.remove(obj);
     this.#entities.delete(obj);
   }
 
@@ -116,19 +106,19 @@ export default class World<C extends Record<string, any>> {
     return this.#entities.get(obj);
   }
 
-  view<V extends string & keyof C>(...keys: V[]): SimpleView<Pick<C, V>> {
-    const ret = new SimpleView<Pick<C, V>>(...keys);
+  view<V extends string & keyof C>(...keys: V[]): View<Pick<C, V>> {
+    const ret = new View<Pick<C, V>>(...keys);
     this.view_by(ret);
     return ret;
   }
 
-  view_by(view: View) {
+  view_by(view: ViewLike) {
     this.#views.push(view);
     for (const key of view.interests) this.#viewref[key].push(view);
     for (const [ent] of this.#entities) view.try_add(ent as any);
   }
 
-  remove_view(view: View) {
+  remove_view(view: ViewLike) {
     const idx = this.#views.indexOf(view);
     if (idx != -1) {
       this.#views.splice(idx, 1);
