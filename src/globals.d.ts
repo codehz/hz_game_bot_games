@@ -14,3 +14,5 @@ interface Document {
 interface ResizeObserverEntry {
   readonly devicePixelContentBoxSize?: ReadonlyArray<ResizeObserverSize>;
 }
+
+function structuredClone<T extends object>(input: T): T;

@@ -16,7 +16,7 @@ export class View<C extends Record<string, any>> implements ViewLike {
     return this.#required;
   }
 
-  *[Symbol.iterator](): Iterator<Readonly<C>> {
+  *[Symbol.iterator](): Iterator<C> {
     yield* this.#data;
   }
 
@@ -34,7 +34,7 @@ export class View<C extends Record<string, any>> implements ViewLike {
 
 type AutoProp<T extends Record<string, any>> = {
   readonly [K in `$${keyof T & string}`]: K extends `$${infer RK}`
-    ? Partial<T[RK]>
+    ? T[RK]
     : never;
 };
 
@@ -59,8 +59,7 @@ export default class World<C extends Record<string, any>> {
       if (key.startsWith("$")) {
         const rk = key.slice(1);
         if (rk in target) return Reflect.get(target, rk);
-        let ret = this.#template[rk];
-        if (typeof ret === "object") ret = Object.create(ret);
+        const ret = structuredClone(this.#template[rk]);
         Reflect.set(target, rk, ret);
         for (const view of this.#viewref[rk]) view.try_add(target);
         return ret;

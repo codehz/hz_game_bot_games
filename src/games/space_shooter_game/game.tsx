@@ -60,9 +60,23 @@ export class GameContent extends CustomHTMLElement {
     scale: 0,
     opacity: 0,
     atlas: null as unknown as AtlasDescriptor,
+    bullet_life: 0,
+    spawn_bullets: [] as {
+      initial_velocity: { x: number; y: number };
+      life: number;
+      cooldown_init: number;
+      cooldown: number;
+      atlas: AtlasDescriptor;
+    }[],
   });
 
   #moving_view = this.#world.view("position", "velocity");
+  #bullet_view = this.#world.view("bullet_life");
+  #spawn_bullet_view = this.#world.view(
+    "position",
+    "velocity",
+    "spawn_bullets"
+  );
   #rendering = renderSprites({
     view: this.#world.view("position", "rotate", "scale", "opacity", "atlas"),
     image: sheet,
@@ -75,6 +89,15 @@ export class GameContent extends CustomHTMLElement {
     scale: 0.2,
     opacity: 1,
     atlas: atlas.get("playerShip1_blue")!,
+    spawn_bullets: [
+      {
+        initial_velocity: { x: 0, y: -5 },
+        life: 20,
+        cooldown: 10,
+        cooldown_init: 5,
+        atlas: atlas.get("laserBlue01")!,
+      },
+    ],
   });
   #ghost = this.#world.add({
     position: { x: 50, y: 100 },
@@ -167,6 +190,46 @@ export class GameContent extends CustomHTMLElement {
     }
   }
 
+  #kill_bullets() {
+    const list = [];
+    for (const obj of this.#bullet_view) {
+      obj.bullet_life -= 1;
+      if (obj.bullet_life <= 0) list.push(obj);
+    }
+    list.forEach((obj) => this.#world.remove(obj));
+  }
+
+  #spawn_bullets() {
+    for (const {
+      position,
+      velocity: { x: vx, y: vy },
+      spawn_bullets,
+    } of this.#spawn_bullet_view) {
+      for (const info of spawn_bullets) {
+        info.cooldown--;
+        if (info.cooldown <= 0) {
+          const {
+            cooldown_init,
+            initial_velocity: { x: vdx, y: vdy },
+            life,
+            atlas,
+          } = info;
+          info.cooldown = cooldown_init;
+
+          this.#world.add({
+            position: { ...position! },
+            velocity: { x: vx + vdx, y: vy + vdy },
+            rotate: 0,
+            scale: 0.2,
+            opacity: 1.0,
+            atlas: atlas,
+            bullet_life: life,
+          });
+        }
+      }
+    }
+  }
+
   @attach("prepare", "#canvas")
   on_prepare() {
     if (this.#offset && this.#current && this.#ghost_target) {
@@ -183,6 +246,8 @@ export class GameContent extends CustomHTMLElement {
     this.#move_player();
     this.#limit_player();
     this.#iter_velocity();
+    this.#kill_bullets();
+    this.#spawn_bullets();
   }
 
   @attach("frame", "#canvas")
