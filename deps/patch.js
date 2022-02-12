@@ -6,31 +6,56 @@ function* flatten(value) {
   else yield value;
 }
 Object.assign(GeneratorPrototype, {
-  *concat(another) {
-    for (const item of this) yield item;
-    for (const item of another) yield item;
-  },
   *map(callback) {
     for (const item of this) yield callback(item);
   },
   *filter(callback) {
     for (const item of this) if (callback(item)) yield item;
   },
-  forEach(callback) {
-    for (const item of this) callback(item);
+  *take(number) {
+    for (const item of this) {
+      if (number-- <= 0) break;
+      yield item;
+    }
+  },
+  *drop(number) {
+    for (const item of this) {
+      if (number-- <= 0) continue;
+      yield item;
+    }
+  },
+  *asIndexedPairs() {
+    let i = 0;
+    for (const item of this) {
+      yield [i++, item];
+    }
+  },
+  *flatMap(callback) {
+    for (const item of this) yield* callback(item);
   },
   reduce(callback, init) {
     for (const item of this) init = callback(init, item);
     return init;
   },
-  *flatten() {
-    for (const item of this) yield* flatten(item);
-  },
-  collect() {
+  toArray() {
     const ret = [];
     for (const item of this) ret.push(item);
     return ret;
   },
+  forEach(callback) {
+    for (const item of this) callback(item);
+  },
+  some(callback) {
+    for (const item of this) if (callback(item)) return true;
+    return false;
+  },
+  every(callback) {
+    for (const item of this) if (!callback(item)) return false;
+    return true;
+  },
+  find(callback) {
+    for (const item of this) if (callback(item)) return item;
+  }
 });
 Object.defineProperty(Object.prototype, "iter", {
   get() {

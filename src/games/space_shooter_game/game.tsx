@@ -226,20 +226,19 @@ export class GameContent extends CustomHTMLElement {
     this.#bullet_view
       .iter()
       .filter((obj) => obj.bullet_life-- <= 0)
-      .collect()
+      .toArray()
       .forEach((item) => this.#world.remove(item));
   }
 
   #spawn_bullets() {
     this.#spawn_bullet_view
       .iter()
-      .map(({ position, velocity, spawn_bullets }) =>
+      .flatMap(({ position, velocity, spawn_bullets }) =>
         spawn_bullets
           .map((info) => info(position, velocity)!)
           .filter((x) => x != null)
       )
-      .flatten()
-      .collect()
+      .toArray()
       .forEach((item) => this.#world.add(item));
   }
 

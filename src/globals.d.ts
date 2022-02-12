@@ -23,13 +23,17 @@ type FlattenedGenerator<T> = T extends Iterable<infer R>
 
 interface Generator<T = unknown, TReturn = any, TNext = unknown>
   extends Iterator<T, TReturn, TNext> {
-  concat(iter: Iterable<T>): Generator<T>;
   map<R>(callback: (item: T) => R): Generator<R>;
   filter(callback: (item: T) => boolean): Generator<R>;
-  forEach(callback: (item: T) => void): void;
+  take(num: number): Generator<R>;
+  drop(num: number): Generator<R>;
+  asIndexedPairs(): Generator<[number, R]>;
+  flatMap<R>(callback: (item: T) => Iterable<R>): Generator<R>;
   reduce<R>(callback: (prev: R, item: T) => R, init: R): R;
-  flatten(): FlattenedGenerator<T>;
-  collect(): Array<T>;
+  toArray(): Array<T>;
+  forEach(callback: (item: T) => void): void;
+  some(callback: (item: T) => boolean): boolean;
+  every(callback: (item: T) => boolean): boolean;
 }
 
 interface Object {
