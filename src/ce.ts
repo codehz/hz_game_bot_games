@@ -76,7 +76,7 @@ export abstract class CustomHTMLElement extends HTMLElement {
           for (const { selector, name } of arr) {
             if (selector) {
               const target = e.target as HTMLElement;
-              const matched = target.parentElement?.closest(selector);
+              const matched = target.closest(selector);
               if (matched) {
                 Object.defineProperty(e, "currentTarget", {
                   enumerable: false,
