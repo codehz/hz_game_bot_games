@@ -4,9 +4,13 @@ export interface ViewLike {
   remove(obj: object): void;
 }
 
-export class View<C extends Record<string, any>> implements ViewLike {
+type MixOptional<T, S extends keyof T> = Partial<T> & Pick<T, S>;
+
+export class View<C extends Record<string, any>, R extends keyof C>
+  implements ViewLike
+{
   #required: string[];
-  #data: Set<C> = new Set();
+  #data: Set<MixOptional<C, R>> = new Set();
 
   constructor(...required: string[]) {
     this.#required = required;
@@ -16,21 +20,21 @@ export class View<C extends Record<string, any>> implements ViewLike {
     return this.#required;
   }
 
-  *[Symbol.iterator](): Generator<C> {
+  *[Symbol.iterator](): Generator<MixOptional<C, R>> {
     for (const item of this.#data) {
       yield item;
     }
   }
 
-  try_add(obj: C) {
+  try_add(obj: MixOptional<C, R>) {
     if (this.#data.has(obj)) return;
     if (this.#required.every((key) => key in obj)) {
       this.#data.add(obj);
     }
   }
 
-  remove(obj: C) {
-    this.#data.delete(obj);
+  remove(obj: Partial<C>) {
+    this.#data.delete(obj as any);
   }
 }
 
@@ -107,8 +111,8 @@ export default class World<C extends Record<string, any>> {
     return this.#entities.get(obj);
   }
 
-  view<V extends string & keyof C>(...keys: V[]): View<Pick<C, V>> {
-    const ret = new View<Pick<C, V>>(...keys);
+  view<V extends string & keyof C>(...keys: V[]): View<C, V> {
+    const ret = new View<C, V>(...keys);
     this.view_by(ret);
     return ret;
   }

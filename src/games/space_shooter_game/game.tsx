@@ -14,50 +14,9 @@ import loading from "./loader.js";
 import World from "/js/ecs.js";
 import { AtlasDescriptor } from "/js/atlas.js";
 import { Timer } from "/js/utils.js";
+import { defaults, createBulletSpawner } from "./types.js";
 
 const { sheet, atlas } = await loading;
-
-type Team = "NATURAL" | "FRIENDLY" | "HOSTILE";
-
-interface Spawner<
-  State = void,
-  Input extends {
-    position: { x: number; y: number };
-    velocity: { x: number; y: number };
-  } = { position: { x: number; y: number }; velocity: { x: number; y: number } }
-> {
-  (this: State, source: Input):
-    | {
-        position: {
-          x: number;
-          y: number;
-        };
-        velocity?: {
-          x: number;
-          y: number;
-        };
-        rotate: number;
-        scale: number;
-        opacity: number;
-        atlas: AtlasDescriptor;
-        team?: Team;
-        hitbox?: { halfwidth: number; halfheight: number };
-        life?: number;
-        damage?: number;
-        on_die?: Spawner;
-      }
-    | undefined;
-}
-
-function createBulletSpawner<
-  State,
-  Input extends {
-    position: { x: number; y: number };
-    velocity: { x: number; y: number };
-  } = { position: { x: number; y: number }; velocity: { x: number; y: number } }
->(state: State, f: Spawner<State, Input>): Spawner<void> {
-  return f.bind(state) as unknown as Spawner<void>;
-}
 
 @customElement("game-content")
 @shadow(
@@ -97,23 +56,7 @@ export class GameContent extends CustomHTMLElement {
   @id("canvas")
   canvas!: GameCanvas;
 
-  #world = new World({
-    auto_rotate: 0,
-    position: { x: 0, y: 0 },
-    velocity: { x: 0, y: 0 },
-    rotate: 0,
-    scale: 0,
-    opacity: 0,
-    atlas: null as unknown as AtlasDescriptor,
-    keep_alive: 0,
-    spawn_bullets: [] as Array<Spawner>,
-    team: "NATURAL" as Team,
-    hitbox: { halfwidth: 10, halfheight: 10 },
-    life: 100,
-    damage: 100,
-    dying: "",
-    on_die: (() => undefined) as Spawner,
-  });
+  #world = new World(defaults);
 
   #moving_view = this.#world.view("position", "velocity");
   #bullet_view = this.#world.view("keep_alive");
@@ -170,7 +113,7 @@ export class GameContent extends CustomHTMLElement {
           damage: 50,
           team: "FRIENDLY",
           hitbox: { halfwidth: 0.5, halfheight: 3 },
-          on_die: ({ position: { x, y } }) => ({
+          die_spawn: ({ position: { x, y } }) => ({
             position: { x, y },
             rotate: Math.random() * Math.PI * 2,
             opacity: 1,
@@ -297,7 +240,7 @@ export class GameContent extends CustomHTMLElement {
             team: "HOSTILE",
             hitbox: { halfwidth: 0.5, halfheight: 3 },
             damage: 10,
-            on_die: ({ position: { x, y } }) => ({
+            die_spawn: ({ position: { x, y } }) => ({
               position: { x, y },
               rotate: Math.random() * Math.PI * 2,
               opacity: 1,
@@ -359,7 +302,7 @@ export class GameContent extends CustomHTMLElement {
   #clean_dying() {
     const list = this.#dying_view.iter().toArray();
     list
-      .map((o) => this.#world.get(o)!.on_die?.(o as any)!)
+      .map((o) => this.#world.get(o)!.die_spawn?.(o as any)!)
       .filter((o) => !!o)
       .forEach((o) => this.#world.add(o));
     list.forEach((o) => this.#world.remove(o));
@@ -436,7 +379,7 @@ export class GameContent extends CustomHTMLElement {
       team: "FRIENDLY",
       hitbox: { halfheight: 8, halfwidth: 8 },
       damage: 100,
-      on_die: createBulletSpawner(null, ({ position: { x, y } }) => ({
+      die_spawn: ({ position: { x, y } }) => ({
         position: { x, y },
         rotate: Math.random() * Math.PI * 2,
         scale: 0.5,
@@ -447,7 +390,7 @@ export class GameContent extends CustomHTMLElement {
         team: "FRIENDLY",
         hitbox: { halfheight: 10, halfwidth: 10 },
         atlas: atlas.get("laserBlue08")!,
-      })),
+      }),
       spawn_bullets: [0, 1, 2, 3]
         .map((x) => (x * Math.PI) / 2)
         .map((deg) =>
@@ -476,7 +419,7 @@ export class GameContent extends CustomHTMLElement {
                 team: "FRIENDLY",
                 hitbox: { halfwidth: 0.5, halfheight: 0.5 },
                 damage: 20,
-                on_die: ({
+                die_spawn: ({
                   position: { x, y },
                 }: {
                   position: { x: number; y: number };
