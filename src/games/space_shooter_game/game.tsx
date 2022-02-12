@@ -12,6 +12,7 @@ import GameCanvas, { renderSprites } from "/js/canvas.js";
 import loading from "./loader.js";
 import World from "/js/ecs.js";
 import { AtlasDescriptor } from "/js/atlas.js";
+import { Timer } from "/js/utils.js";
 
 const { sheet, atlas } = await loading;
 
@@ -115,23 +116,19 @@ export class GameContent extends CustomHTMLElement {
     opacity: 1,
     atlas: atlas.get("playerShip1_blue")!,
     spawn_bullets: [
-      createBulletSpawner(
-        { cooldown: 0, cooldown_init: 5 },
-        function ({ x, y }) {
-          if (this.cooldown-- > 0) return;
-          this.cooldown = this.cooldown_init;
-          const velocity = { x: 0, y: -4 };
-          return {
-            position: { x, y },
-            velocity,
-            rotate: 0,
-            opacity: 1,
-            scale: 0.2,
-            atlas: atlas.get("laserBlue01")!,
-            bullet_life: 50,
-          };
-        }
-      ),
+      createBulletSpawner(new Timer(5), function ({ x, y }) {
+        if (!this.next()) return;
+        const velocity = { x: 0, y: -4 };
+        return {
+          position: { x, y },
+          velocity,
+          rotate: 0,
+          opacity: 1,
+          scale: 0.2,
+          atlas: atlas.get("laserBlue01")!,
+          bullet_life: 50,
+        };
+      }),
     ],
   });
   #ghost = this.#world.add({
@@ -246,6 +243,19 @@ export class GameContent extends CustomHTMLElement {
       .forEach((item) => this.#world.add(item));
   }
 
+  #enemy_timer = new Timer(500);
+  #spawn_enemy() {
+    if (!this.#enemy_timer.next()) return;
+    this.#world.add({
+      position: { x: Math.random() * 80 + 10, y: -10 },
+      velocity: { x: 0, y: 0.5 },
+      rotate: 0,
+      opacity: 1,
+      scale: 0.2,
+      atlas: atlas.get("cockpitBlue_0")!,
+    });
+  }
+
   @attach("prepare", "#canvas")
   on_prepare() {
     if (this.#offset && this.#current && this.#ghost_target) {
@@ -264,6 +274,7 @@ export class GameContent extends CustomHTMLElement {
     this.#iter_velocity();
     this.#kill_bullets();
     this.#spawn_bullets();
+    this.#spawn_enemy();
   }
 
   @attach("frame", "#canvas")

@@ -32,3 +32,21 @@ export function splitImportURL(urlstr: string) {
   const ver = url.search.slice(1);
   return { name, ver };
 }
+
+export class Timer {
+  #init: number;
+  value: number;
+
+  constructor(init: number) {
+    this.value = this.#init = init;
+  }
+
+  next() {
+    if (this.value-- <= 0) {
+      this.value = this.#init;
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
