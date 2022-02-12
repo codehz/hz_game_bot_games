@@ -87,13 +87,7 @@ export function renderSprites<
     opacity: number;
     atlas: AtlasDescriptor;
   }
->({
-  view,
-  image,
-}: {
-  view: View<V>;
-  image: ImageBitmap;
-}) {
+>({ view, image }: { view: View<V>; image: ImageBitmap }) {
   return (ctx: CanvasRenderingContext2D) => {
     for (const {
       atlas,

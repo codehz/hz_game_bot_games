@@ -380,7 +380,6 @@ export class GameContent extends CustomHTMLElement {
 
   #clean_dying() {
     const list = this.#dying_view.iter().toArray();
-    if (list.length) console.log(list);
     list
       .map((o) => this.#world.get(o)!.on_die?.(o as any)!)
       .filter((o) => !!o)
@@ -447,7 +446,6 @@ export class GameContent extends CustomHTMLElement {
 
   @listen_closest("keypress", "body")
   on_keydown(e: KeyboardEvent) {
-    console.log(e.code);
     if (e.code == "Space") {
       e.preventDefault();
       this.#world.add({
