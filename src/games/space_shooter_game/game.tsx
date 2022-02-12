@@ -7,6 +7,7 @@ import {
   id,
   attach,
   listen_host,
+  listen_closest,
 } from "/js/ce.js";
 import GameCanvas, { renderSprites } from "/js/canvas.js";
 import loading from "./loader.js";
@@ -18,12 +19,14 @@ const { sheet, atlas } = await loading;
 
 type Team = "NATURAL" | "FRIENDLY" | "HOSTILE";
 
-interface Spawner<State = void> {
-  (
-    this: State,
-    position: { x: number; y: number },
-    velocity: { x: number; y: number }
-  ):
+interface Spawner<
+  State = void,
+  Input extends {
+    position: { x: number; y: number };
+    velocity: { x: number; y: number };
+  } = { position: { x: number; y: number }; velocity: { x: number; y: number } }
+> {
+  (this: State, source: Input):
     | {
         position: {
           x: number;
@@ -46,11 +49,14 @@ interface Spawner<State = void> {
     | undefined;
 }
 
-function createBulletSpawner<State>(
-  state: State,
-  f: Spawner<State>
-): Spawner<void> {
-  return f.bind(state) as Spawner<void>;
+function createBulletSpawner<
+  State,
+  Input extends {
+    position: { x: number; y: number };
+    velocity: { x: number; y: number };
+  } = { position: { x: number; y: number }; velocity: { x: number; y: number } }
+>(state: State, f: Spawner<State, Input>): Spawner<void> {
+  return f.bind(state) as unknown as Spawner<void>;
 }
 
 @customElement("game-content")
@@ -92,6 +98,7 @@ export class GameContent extends CustomHTMLElement {
   canvas!: GameCanvas;
 
   #world = new World({
+    auto_rotate: 0,
     position: { x: 0, y: 0 },
     velocity: { x: 0, y: 0 },
     rotate: 0,
@@ -129,12 +136,13 @@ export class GameContent extends CustomHTMLElement {
   );
   #life_view = this.#world.view("life");
   #clean_range_view = this.#world.view("position", "velocity");
-  #dying_view = this.#world.view("dying", "position", "velocity");
+  #dying_view = this.#world.view("dying", "position");
   #rendering = renderSprites({
     view: this.#world.view("position", "rotate", "scale", "opacity", "atlas"),
     image: sheet,
   });
   #hitbox_debug_view = this.#world.view("position", "hitbox", "team");
+  #auto_rotate_view = this.#world.view("rotate", "auto_rotate");
 
   #player = this.#world.add({
     life: 100,
@@ -148,7 +156,7 @@ export class GameContent extends CustomHTMLElement {
     opacity: 1,
     atlas: atlas.get("playerShip1_blue")!,
     spawn_bullets: [
-      createBulletSpawner(new Timer(20), function ({ x, y }) {
+      createBulletSpawner(new Timer(20), function ({ position: { x, y } }) {
         if (!this.next()) return;
         const velocity = { x: 0, y: -2 };
         return {
@@ -162,7 +170,7 @@ export class GameContent extends CustomHTMLElement {
           damage: 50,
           team: "FRIENDLY",
           hitbox: { halfwidth: 0.5, halfheight: 3 },
-          on_die: ({ x, y }) => ({
+          on_die: ({ position: { x, y } }) => ({
             position: { x, y },
             rotate: Math.random() * Math.PI * 2,
             opacity: 1,
@@ -269,17 +277,14 @@ export class GameContent extends CustomHTMLElement {
     this.#bullet_view
       .iter()
       .filter((obj) => obj.keep_alive-- <= 0)
-      .toArray()
-      .forEach((item) => this.#world.remove(item));
+      .forEach((obj) => (this.#world.get(obj)!.dying = "timeout"));
   }
 
   #spawn_bullets() {
     this.#spawn_bullet_view
       .iter()
-      .flatMap(({ position, velocity, spawn_bullets }) =>
-        spawn_bullets
-          .map((info) => info(position, velocity)!)
-          .filter((x) => x != null)
+      .flatMap((o) =>
+        o.spawn_bullets.map((info) => info(o)!).filter((x) => x != null)
       )
       .toArray()
       .forEach((item) => this.#world.add(item));
@@ -300,7 +305,7 @@ export class GameContent extends CustomHTMLElement {
       scale: 0.2,
       atlas: atlas.get("cockpitBlue_0")!,
       spawn_bullets: [
-        createBulletSpawner(new Timer(40), function ({ x, y }) {
+        createBulletSpawner(new Timer(40), function ({ position: { x, y } }) {
           if (!this.next()) return;
           const velocity = { x: 0, y: 1 };
           return {
@@ -314,7 +319,7 @@ export class GameContent extends CustomHTMLElement {
             team: "HOSTILE",
             hitbox: { halfwidth: 0.5, halfheight: 3 },
             damage: 10,
-            on_die: ({ x, y }) => ({
+            on_die: ({ position: { x, y } }) => ({
               position: { x, y },
               rotate: Math.random() * Math.PI * 2,
               opacity: 1,
@@ -375,11 +380,18 @@ export class GameContent extends CustomHTMLElement {
 
   #clean_dying() {
     const list = this.#dying_view.iter().toArray();
+    if (list.length) console.log(list);
     list
-      .map((o) => this.#world.get(o)!.on_die?.(o.position, o.velocity)!)
+      .map((o) => this.#world.get(o)!.on_die?.(o as any)!)
       .filter((o) => !!o)
       .forEach((o) => this.#world.add(o));
     list.forEach((o) => this.#world.remove(o));
+  }
+
+  #auto_rotate() {
+    for (const o of this.#auto_rotate_view) {
+      o.rotate += o.auto_rotate;
+    }
   }
 
   @attach("prepare", "#canvas")
@@ -394,6 +406,7 @@ export class GameContent extends CustomHTMLElement {
       this.#ghost_target.y += dy;
     }
 
+    this.#auto_rotate();
     this.#move_ghost();
     this.#move_player();
     this.#limit_player();
@@ -430,6 +443,84 @@ export class GameContent extends CustomHTMLElement {
 
     ctx.fillStyle = "white";
     ctx.fillText("life: " + this.#player.life!, 0, 20);
+  }
+
+  @listen_closest("keypress", "body")
+  on_keydown(e: KeyboardEvent) {
+    console.log(e.code);
+    if (e.code == "Space") {
+      e.preventDefault();
+      this.#world.add({
+        position: { ...this.#player.position! },
+        velocity: { x: 0, y: -0.5 },
+        rotate: 0,
+        auto_rotate: 0.05,
+        opacity: 1,
+        scale: 0.2,
+        atlas: atlas.get("ufoBlue")!,
+        keep_alive: 150,
+        life: 500,
+        team: "FRIENDLY",
+        hitbox: { halfheight: 8, halfwidth: 8 },
+        damage: 100,
+        on_die: createBulletSpawner(null, ({ position: { x, y } }) => ({
+          position: { x, y },
+          rotate: Math.random() * Math.PI * 2,
+          scale: 0.5,
+          opacity: 1,
+          keep_alive: 50,
+          life: 50,
+          damage: 100,
+          team: "FRIENDLY",
+          hitbox: { halfheight: 10, halfwidth: 10 },
+          atlas: atlas.get("laserBlue08")!,
+        })),
+        spawn_bullets: [0, 1, 2, 3]
+          .map((x) => (x * Math.PI) / 2)
+          .map((deg) =>
+            createBulletSpawner(
+              new Timer(4),
+              function ({
+                position,
+                velocity: { x: vx, y: vy },
+                rotate,
+              }: {
+                position: { x: number; y: number };
+                velocity: { x: number; y: number };
+                rotate: number;
+              }) {
+                if (!this.next()) return;
+                return {
+                  position: { ...position },
+                  velocity: {
+                    x: vx + Math.sin(rotate + deg) * 0.8,
+                    y: vy + -Math.cos(rotate + deg) * 0.8,
+                  },
+                  rotate: rotate + deg,
+                  opacity: 1,
+                  scale: 0.15,
+                  atlas: atlas.get("laserBlue07")!,
+                  team: "FRIENDLY",
+                  hitbox: { halfwidth: 0.5, halfheight: 0.5 },
+                  damage: 20,
+                  on_die: ({
+                    position: { x, y },
+                  }: {
+                    position: { x: number; y: number };
+                  }) => ({
+                    position: { x, y },
+                    rotate: Math.random() * Math.PI * 2,
+                    opacity: 1,
+                    scale: 0.2,
+                    atlas: atlas.get("laserBlue08")!,
+                    keep_alive: 20,
+                  }),
+                };
+              }
+            )
+          ),
+      });
+    }
   }
 
   @listen_host("pointerup")
