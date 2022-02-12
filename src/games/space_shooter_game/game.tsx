@@ -134,12 +134,13 @@ export class GameContent extends CustomHTMLElement {
     view: this.#world.view("position", "rotate", "scale", "opacity", "atlas"),
     image: sheet,
   });
+  #hitbox_debug_view = this.#world.view("position", "hitbox", "team");
 
   #player = this.#world.add({
     life: 100,
     damage: 100,
     team: "FRIENDLY",
-    hitbox: { halfheight: 5, halfwidth: 5 },
+    hitbox: { halfheight: 5, halfwidth: 3 },
     position: { x: 50, y: 100 },
     velocity: { x: 0, y: 0 },
     rotate: 0,
@@ -160,7 +161,7 @@ export class GameContent extends CustomHTMLElement {
           keep_alive: 100,
           damage: 50,
           team: "FRIENDLY",
-          hitbox: { halfwidth: 0, halfheight: 3 },
+          hitbox: { halfwidth: 0.5, halfheight: 3 },
           on_die: ({ x, y }) => ({
             position: { x, y },
             rotate: Math.random() * Math.PI * 2,
@@ -311,7 +312,7 @@ export class GameContent extends CustomHTMLElement {
             atlas: atlas.get("laserRed01")!,
             keep_alive: 500,
             team: "HOSTILE",
-            hitbox: { halfwidth: 0, halfheight: 3 },
+            hitbox: { halfwidth: 0.5, halfheight: 3 },
             damage: 10,
             on_die: ({ x, y }) => ({
               position: { x, y },
@@ -406,9 +407,26 @@ export class GameContent extends CustomHTMLElement {
     this.#spawn_enemy();
   }
 
+  #debug_hitbox(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    for (const {
+      position: { x, y },
+      hitbox: { halfwidth, halfheight },
+      team,
+    } of this.#hitbox_debug_view) {
+      const x_min = x - halfwidth;
+      const y_min = y - halfheight;
+      ctx.fillStyle =
+        team == "FRIENDLY" ? "#0f07" : team == "HOSTILE" ? "#f007" : "#00f7";
+      ctx.fillRect(x_min, y_min, halfwidth * 2, halfheight * 2);
+    }
+    ctx.restore();
+  }
+
   @attach("frame", "#canvas")
   on_frame(ctx: CanvasRenderingContext2D) {
     this.#rendering(ctx);
+    this.#debug_hitbox(ctx);
 
     ctx.fillStyle = "white";
     ctx.fillText("life: " + this.#player.life!, 0, 20);
