@@ -16,6 +16,8 @@ import { Timer } from "/js/utils.js";
 
 const { sheet, atlas } = await loading;
 
+type Team = "NATURAL" | "FRIENDLY" | "HOSTILE";
+
 interface BulletSpawner<State = void> {
   (
     this: State,
@@ -35,7 +37,8 @@ interface BulletSpawner<State = void> {
         scale: number;
         opacity: number;
         atlas: AtlasDescriptor;
-        bullet_life: number;
+        team: Team;
+        hitbox: { halfwidth: number; halfheight: number };
       }
     | undefined;
 }
@@ -92,23 +95,45 @@ export class GameContent extends CustomHTMLElement {
     scale: 0,
     opacity: 0,
     atlas: null as unknown as AtlasDescriptor,
-    bullet_life: 0,
+    keep_alive: 0,
     spawn_bullets: [] as Array<BulletSpawner>,
+    team: "NATURAL" as Team,
+    hitbox: { halfwidth: 10, halfheight: 10 },
+    life: 100,
+    damage: 100,
   });
 
   #moving_view = this.#world.view("position", "velocity");
-  #bullet_view = this.#world.view("bullet_life");
+  #bullet_view = this.#world.view("keep_alive");
+  #collision_receive_view = this.#world.view(
+    "position",
+    "hitbox",
+    "team",
+    "life"
+  );
+  #collision_sender_view = this.#world.view(
+    "position",
+    "hitbox",
+    "team",
+    "damage"
+  );
   #spawn_bullet_view = this.#world.view(
     "position",
     "velocity",
     "spawn_bullets"
   );
+  #life_view = this.#world.view("life");
+  #clean_range_view = this.#world.view("position", "velocity");
   #rendering = renderSprites({
     view: this.#world.view("position", "rotate", "scale", "opacity", "atlas"),
     image: sheet,
   });
 
   #player = this.#world.add({
+    life: 100,
+    damage: 100,
+    team: "FRIENDLY",
+    hitbox: { halfheight: 5, halfwidth: 5 },
     position: { x: 50, y: 100 },
     velocity: { x: 0, y: 0 },
     rotate: 0,
@@ -116,9 +141,9 @@ export class GameContent extends CustomHTMLElement {
     opacity: 1,
     atlas: atlas.get("playerShip1_blue")!,
     spawn_bullets: [
-      createBulletSpawner(new Timer(5), function ({ x, y }) {
+      createBulletSpawner(new Timer(20), function ({ x, y }) {
         if (!this.next()) return;
-        const velocity = { x: 0, y: -4 };
+        const velocity = { x: 0, y: -2 };
         return {
           position: { x, y },
           velocity,
@@ -126,7 +151,10 @@ export class GameContent extends CustomHTMLElement {
           opacity: 1,
           scale: 0.2,
           atlas: atlas.get("laserBlue01")!,
-          bullet_life: 50,
+          keep_alive: 100,
+          damage: 50,
+          team: "FRIENDLY",
+          hitbox: { halfwidth: 0, halfheight: 3 },
         };
       }),
     ],
@@ -225,7 +253,7 @@ export class GameContent extends CustomHTMLElement {
   #kill_bullets() {
     this.#bullet_view
       .iter()
-      .filter((obj) => obj.bullet_life-- <= 0)
+      .filter((obj) => obj.keep_alive-- <= 0)
       .toArray()
       .forEach((item) => this.#world.remove(item));
   }
@@ -242,10 +270,14 @@ export class GameContent extends CustomHTMLElement {
       .forEach((item) => this.#world.add(item));
   }
 
-  #enemy_timer = new Timer(50);
+  #enemy_timer = new Timer(500);
   #spawn_enemy() {
     if (!this.#enemy_timer.next()) return;
     this.#world.add({
+      hitbox: { halfwidth: 5, halfheight: 5 },
+      team: "HOSTILE",
+      damage: 100,
+      life: 100,
       position: { x: Math.random() * 80 + 10, y: -10 },
       velocity: { x: 0, y: 0.5 },
       rotate: 0,
@@ -253,9 +285,9 @@ export class GameContent extends CustomHTMLElement {
       scale: 0.2,
       atlas: atlas.get("cockpitBlue_0")!,
       spawn_bullets: [
-        createBulletSpawner(new Timer(5), function ({ x, y }) {
+        createBulletSpawner(new Timer(30), function ({ x, y }) {
           if (!this.next()) return;
-          const velocity = { x: 0, y: 4 };
+          const velocity = { x: 0, y: 1 };
           return {
             position: { x, y },
             velocity,
@@ -263,11 +295,59 @@ export class GameContent extends CustomHTMLElement {
             opacity: 1,
             scale: 0.2,
             atlas: atlas.get("laserRed01")!,
-            bullet_life: 50,
+            keep_alive: 500,
+            team: "HOSTILE",
+            hitbox: { halfwidth: 0, halfheight: 3 },
+            damage: 10,
           };
         }),
       ],
     });
+  }
+
+  #collision_detection() {
+    for (const a of this.#collision_receive_view) {
+      const {
+        position: { x, y },
+        hitbox: { halfwidth, halfheight },
+      } = a;
+      const [x_min, x_max] = [x - halfwidth, x + halfwidth];
+      const [y_min, y_max] = [y - halfheight, y + halfheight];
+      for (const b of this.#collision_sender_view) {
+        const {
+          position: { x, y },
+          hitbox: { halfwidth, halfheight },
+        } = b;
+        if (a.team == b.team) continue;
+        const [x_min2, x_max2] = [x - halfwidth, x + halfwidth];
+        const [y_min2, y_max2] = [y - halfheight, y + halfheight];
+        if (x_max < x_min2 || x_min > x_max2) continue;
+        if (y_max < y_min2 || y_min > y_max2) continue;
+        a.life -= b.damage;
+      }
+    }
+  }
+
+  #clean_life() {
+    this.#life_view
+      .iter()
+      .filter((o) => o.life <= 0)
+      .toArray()
+      .forEach((o) => this.#world.remove(o));
+  }
+
+  #clean_range() {
+    this.#clean_range_view
+      .iter()
+      .filter(
+        ({ position: { x, y }, velocity: { x: vx, y: vy } }) =>
+          (x < -10 && vx <= 0) ||
+          (x > 110 && vx >= 0) ||
+          (y < -10 && vy <= 0) ||
+          (y >= 160 && vy > 0)
+      )
+      .toArray()
+      .forEach((o) => this.#world.remove(o));
   }
 
   @attach("prepare", "#canvas")
@@ -287,6 +367,9 @@ export class GameContent extends CustomHTMLElement {
     this.#limit_player();
     this.#iter_velocity();
     this.#kill_bullets();
+    this.#clean_range();
+    this.#collision_detection();
+    this.#clean_life();
     this.#spawn_bullets();
     this.#spawn_enemy();
   }
@@ -294,6 +377,9 @@ export class GameContent extends CustomHTMLElement {
   @attach("frame", "#canvas")
   on_frame(ctx: CanvasRenderingContext2D) {
     this.#rendering(ctx);
+
+    ctx.fillStyle = "white";
+    ctx.fillText("life: " + this.#player.life!, 0, 20);
   }
 
   @listen_host("pointerup")
