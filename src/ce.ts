@@ -23,7 +23,7 @@ export function cloneNode(node: Node): Node {
   return ret;
 }
 
-export abstract class CustomHTMLElement extends HTMLElement {
+export declare interface CustomHTMLElement {
   [$tags]?: string[];
   [$selector]?: Map<string, { selector: string; all: boolean } | string>;
   [$template]?: Node;
@@ -38,6 +38,9 @@ export abstract class CustomHTMLElement extends HTMLElement {
   [$direct_listeners]?: { name: string; event: string; selector: string }[];
   [$attach_listeners]?: { name: string; event: string; selector: string }[];
   [$frame]?: number;
+}
+
+export abstract class CustomHTMLElement extends HTMLElement {
   #listeners: { node: Node; event: string; listener: EventListener }[] = [];
   #attached_listeners: {
     node: CustomHTMLElement;
