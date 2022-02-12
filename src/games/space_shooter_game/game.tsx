@@ -18,7 +18,7 @@ const { sheet, atlas } = await loading;
 
 type Team = "NATURAL" | "FRIENDLY" | "HOSTILE";
 
-interface BulletSpawner<State = void> {
+interface Spawner<State = void> {
   (
     this: State,
     position: { x: number; y: number },
@@ -29,7 +29,7 @@ interface BulletSpawner<State = void> {
           x: number;
           y: number;
         };
-        velocity: {
+        velocity?: {
           x: number;
           y: number;
         };
@@ -37,17 +37,20 @@ interface BulletSpawner<State = void> {
         scale: number;
         opacity: number;
         atlas: AtlasDescriptor;
-        team: Team;
-        hitbox: { halfwidth: number; halfheight: number };
+        team?: Team;
+        hitbox?: { halfwidth: number; halfheight: number };
+        life?: number;
+        damage?: number;
+        on_die?: Spawner;
       }
     | undefined;
 }
 
 function createBulletSpawner<State>(
   state: State,
-  f: BulletSpawner<State>
-): BulletSpawner<void> {
-  return f.bind(state) as BulletSpawner<void>;
+  f: Spawner<State>
+): Spawner<void> {
+  return f.bind(state) as Spawner<void>;
 }
 
 @customElement("game-content")
@@ -96,11 +99,13 @@ export class GameContent extends CustomHTMLElement {
     opacity: 0,
     atlas: null as unknown as AtlasDescriptor,
     keep_alive: 0,
-    spawn_bullets: [] as Array<BulletSpawner>,
+    spawn_bullets: [] as Array<Spawner>,
     team: "NATURAL" as Team,
     hitbox: { halfwidth: 10, halfheight: 10 },
     life: 100,
     damage: 100,
+    dying: "",
+    on_die: (() => undefined) as Spawner,
   });
 
   #moving_view = this.#world.view("position", "velocity");
@@ -124,6 +129,7 @@ export class GameContent extends CustomHTMLElement {
   );
   #life_view = this.#world.view("life");
   #clean_range_view = this.#world.view("position", "velocity");
+  #dying_view = this.#world.view("dying", "position", "velocity");
   #rendering = renderSprites({
     view: this.#world.view("position", "rotate", "scale", "opacity", "atlas"),
     image: sheet,
@@ -155,6 +161,14 @@ export class GameContent extends CustomHTMLElement {
           damage: 50,
           team: "FRIENDLY",
           hitbox: { halfwidth: 0, halfheight: 3 },
+          on_die: ({ x, y }) => ({
+            position: { x, y },
+            rotate: Math.random() * Math.PI * 2,
+            opacity: 1,
+            scale: 0.2,
+            atlas: atlas.get("laserBlue08")!,
+            keep_alive: 20,
+          }),
         };
       }),
     ],
@@ -270,7 +284,7 @@ export class GameContent extends CustomHTMLElement {
       .forEach((item) => this.#world.add(item));
   }
 
-  #enemy_timer = new Timer(500);
+  #enemy_timer = new Timer(100);
   #spawn_enemy() {
     if (!this.#enemy_timer.next()) return;
     this.#world.add({
@@ -285,7 +299,7 @@ export class GameContent extends CustomHTMLElement {
       scale: 0.2,
       atlas: atlas.get("cockpitBlue_0")!,
       spawn_bullets: [
-        createBulletSpawner(new Timer(30), function ({ x, y }) {
+        createBulletSpawner(new Timer(40), function ({ x, y }) {
           if (!this.next()) return;
           const velocity = { x: 0, y: 1 };
           return {
@@ -299,6 +313,14 @@ export class GameContent extends CustomHTMLElement {
             team: "HOSTILE",
             hitbox: { halfwidth: 0, halfheight: 3 },
             damage: 10,
+            on_die: ({ x, y }) => ({
+              position: { x, y },
+              rotate: Math.random() * Math.PI * 2,
+              opacity: 1,
+              scale: 0.2,
+              atlas: atlas.get("laserRed08")!,
+              keep_alive: 20,
+            }),
           };
         }),
       ],
@@ -324,6 +346,7 @@ export class GameContent extends CustomHTMLElement {
         if (x_max < x_min2 || x_min > x_max2) continue;
         if (y_max < y_min2 || y_min > y_max2) continue;
         a.life -= b.damage;
+        this.#world.get(b)!.dying = "self destructure";
       }
     }
   }
@@ -332,8 +355,7 @@ export class GameContent extends CustomHTMLElement {
     this.#life_view
       .iter()
       .filter((o) => o.life <= 0)
-      .toArray()
-      .forEach((o) => this.#world.remove(o));
+      .forEach((o) => (this.#world.get(o)!.dying = "low life"));
   }
 
   #clean_range() {
@@ -348,6 +370,15 @@ export class GameContent extends CustomHTMLElement {
       )
       .toArray()
       .forEach((o) => this.#world.remove(o));
+  }
+
+  #clean_dying() {
+    const list = this.#dying_view.iter().toArray();
+    list
+      .map((o) => this.#world.get(o)!.on_die?.(o.position, o.velocity)!)
+      .filter((o) => !!o)
+      .forEach((o) => this.#world.add(o));
+    list.forEach((o) => this.#world.remove(o));
   }
 
   @attach("prepare", "#canvas")
@@ -370,6 +401,7 @@ export class GameContent extends CustomHTMLElement {
     this.#clean_range();
     this.#collision_detection();
     this.#clean_life();
+    this.#clean_dying();
     this.#spawn_bullets();
     this.#spawn_enemy();
   }
