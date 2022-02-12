@@ -195,28 +195,6 @@ export class GameContent extends CustomHTMLElement {
   #ghost_target?: { x: number; y: number };
   #maxspeed = 10;
 
-  @listen_host("pointerdown")
-  on_click({ x, y, isPrimary }: PointerEvent) {
-    if (!isPrimary) return;
-    const scale = this.canvas.scale;
-    x /= scale;
-    y /= scale;
-    this.#current = this.#offset = { x, y };
-    this.#ghost.position = { ...this.#player.position! };
-    this.#ghost.opacity = 0.2;
-    this.#ghost_target = { ...this.#player.position! };
-    // TODO: Start game
-  }
-
-  @listen_host("pointermove")
-  on_move({ x, y, isPrimary }: PointerEvent) {
-    if (!isPrimary) return;
-    const scale = this.canvas.scale;
-    x /= scale;
-    y /= scale;
-    this.#current = { x, y };
-  }
-
   #limit_player_speed() {
     const { x, y } = this.#player.velocity!;
     const speed = (x ** 2 + y ** 2) ** 0.5;
@@ -444,81 +422,110 @@ export class GameContent extends CustomHTMLElement {
     ctx.fillText("life: " + this.#player.life!, 0, 20);
   }
 
+  #emit_altattack() {
+    this.#world.add({
+      position: { ...this.#player.position! },
+      velocity: { x: 0, y: -0.5 },
+      rotate: 0,
+      auto_rotate: 0.05,
+      opacity: 1,
+      scale: 0.2,
+      atlas: atlas.get("ufoBlue")!,
+      keep_alive: 150,
+      life: 500,
+      team: "FRIENDLY",
+      hitbox: { halfheight: 8, halfwidth: 8 },
+      damage: 100,
+      on_die: createBulletSpawner(null, ({ position: { x, y } }) => ({
+        position: { x, y },
+        rotate: Math.random() * Math.PI * 2,
+        scale: 0.5,
+        opacity: 1,
+        keep_alive: 50,
+        life: 50,
+        damage: 100,
+        team: "FRIENDLY",
+        hitbox: { halfheight: 10, halfwidth: 10 },
+        atlas: atlas.get("laserBlue08")!,
+      })),
+      spawn_bullets: [0, 1, 2, 3]
+        .map((x) => (x * Math.PI) / 2)
+        .map((deg) =>
+          createBulletSpawner(
+            new Timer(4),
+            function ({
+              position,
+              velocity: { x: vx, y: vy },
+              rotate,
+            }: {
+              position: { x: number; y: number };
+              velocity: { x: number; y: number };
+              rotate: number;
+            }) {
+              if (!this.next()) return;
+              return {
+                position: { ...position },
+                velocity: {
+                  x: vx + Math.sin(rotate + deg) * 0.8,
+                  y: vy + -Math.cos(rotate + deg) * 0.8,
+                },
+                rotate: rotate + deg,
+                opacity: 1,
+                scale: 0.15,
+                atlas: atlas.get("laserBlue07")!,
+                team: "FRIENDLY",
+                hitbox: { halfwidth: 0.5, halfheight: 0.5 },
+                damage: 20,
+                on_die: ({
+                  position: { x, y },
+                }: {
+                  position: { x: number; y: number };
+                }) => ({
+                  position: { x, y },
+                  rotate: Math.random() * Math.PI * 2,
+                  opacity: 1,
+                  scale: 0.2,
+                  atlas: atlas.get("laserBlue08")!,
+                  keep_alive: 20,
+                }),
+              };
+            }
+          )
+        ),
+    });
+  }
+
   @listen_closest("keypress", "body")
   on_keydown(e: KeyboardEvent) {
     if (e.code == "Space") {
       e.preventDefault();
-      this.#world.add({
-        position: { ...this.#player.position! },
-        velocity: { x: 0, y: -0.5 },
-        rotate: 0,
-        auto_rotate: 0.05,
-        opacity: 1,
-        scale: 0.2,
-        atlas: atlas.get("ufoBlue")!,
-        keep_alive: 150,
-        life: 500,
-        team: "FRIENDLY",
-        hitbox: { halfheight: 8, halfwidth: 8 },
-        damage: 100,
-        on_die: createBulletSpawner(null, ({ position: { x, y } }) => ({
-          position: { x, y },
-          rotate: Math.random() * Math.PI * 2,
-          scale: 0.5,
-          opacity: 1,
-          keep_alive: 50,
-          life: 50,
-          damage: 100,
-          team: "FRIENDLY",
-          hitbox: { halfheight: 10, halfwidth: 10 },
-          atlas: atlas.get("laserBlue08")!,
-        })),
-        spawn_bullets: [0, 1, 2, 3]
-          .map((x) => (x * Math.PI) / 2)
-          .map((deg) =>
-            createBulletSpawner(
-              new Timer(4),
-              function ({
-                position,
-                velocity: { x: vx, y: vy },
-                rotate,
-              }: {
-                position: { x: number; y: number };
-                velocity: { x: number; y: number };
-                rotate: number;
-              }) {
-                if (!this.next()) return;
-                return {
-                  position: { ...position },
-                  velocity: {
-                    x: vx + Math.sin(rotate + deg) * 0.8,
-                    y: vy + -Math.cos(rotate + deg) * 0.8,
-                  },
-                  rotate: rotate + deg,
-                  opacity: 1,
-                  scale: 0.15,
-                  atlas: atlas.get("laserBlue07")!,
-                  team: "FRIENDLY",
-                  hitbox: { halfwidth: 0.5, halfheight: 0.5 },
-                  damage: 20,
-                  on_die: ({
-                    position: { x, y },
-                  }: {
-                    position: { x: number; y: number };
-                  }) => ({
-                    position: { x, y },
-                    rotate: Math.random() * Math.PI * 2,
-                    opacity: 1,
-                    scale: 0.2,
-                    atlas: atlas.get("laserBlue08")!,
-                    keep_alive: 20,
-                  }),
-                };
-              }
-            )
-          ),
-      });
+      this.#emit_altattack();
     }
+  }
+
+  @listen_host("pointerdown")
+  on_click({ x, y, isPrimary }: PointerEvent) {
+    if (!isPrimary) {
+      this.#emit_altattack();
+      return;
+    }
+    const scale = this.canvas.scale;
+    x /= scale;
+    y /= scale;
+    this.#current = this.#offset = { x, y };
+    this.#ghost.position = { ...this.#player.position! };
+    this.#ghost.opacity = 0.2;
+    this.#ghost_target = { ...this.#player.position! };
+    // TODO: Start game
+  }
+
+  @listen_host("pointermove")
+  on_move({ x, y, isPrimary }: PointerEvent) {
+    if (!isPrimary) return;
+    const scale = this.canvas.scale;
+    x /= scale;
+    y /= scale;
+    this.#current = { x, y };
   }
 
   @listen_host("pointerup")
