@@ -242,7 +242,7 @@ export class GameContent extends CustomHTMLElement {
       .forEach((item) => this.#world.add(item));
   }
 
-  #enemy_timer = new Timer(500);
+  #enemy_timer = new Timer(50);
   #spawn_enemy() {
     if (!this.#enemy_timer.next()) return;
     this.#world.add({
@@ -252,6 +252,21 @@ export class GameContent extends CustomHTMLElement {
       opacity: 1,
       scale: 0.2,
       atlas: atlas.get("cockpitBlue_0")!,
+      spawn_bullets: [
+        createBulletSpawner(new Timer(5), function ({ x, y }) {
+          if (!this.next()) return;
+          const velocity = { x: 0, y: 4 };
+          return {
+            position: { x, y },
+            velocity,
+            rotate: Math.PI,
+            opacity: 1,
+            scale: 0.2,
+            atlas: atlas.get("laserRed01")!,
+            bullet_life: 50,
+          };
+        }),
+      ],
     });
   }
 
