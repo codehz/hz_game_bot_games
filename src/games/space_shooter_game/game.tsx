@@ -15,6 +15,37 @@ import { AtlasDescriptor } from "/js/atlas.js";
 
 const { sheet, atlas } = await loading;
 
+interface BulletSpawner<State = void> {
+  (
+    this: State,
+    position: { x: number; y: number },
+    velocity: { x: number; y: number }
+  ):
+    | {
+        position: {
+          x: number;
+          y: number;
+        };
+        velocity: {
+          x: number;
+          y: number;
+        };
+        rotate: number;
+        scale: number;
+        opacity: number;
+        atlas: AtlasDescriptor;
+        bullet_life: number;
+      }
+    | undefined;
+}
+
+function createBulletSpawner<State>(
+  state: State,
+  f: BulletSpawner<State>
+): BulletSpawner<void> {
+  return f.bind(state) as BulletSpawner<void>;
+}
+
 @customElement("game-content")
 @shadow(
   <>
@@ -61,13 +92,7 @@ export class GameContent extends CustomHTMLElement {
     opacity: 0,
     atlas: null as unknown as AtlasDescriptor,
     bullet_life: 0,
-    spawn_bullets: [] as {
-      initial_velocity: { x: number; y: number };
-      life: number;
-      cooldown_init: number;
-      cooldown: number;
-      atlas: AtlasDescriptor;
-    }[],
+    spawn_bullets: [] as Array<BulletSpawner>,
   });
 
   #moving_view = this.#world.view("position", "velocity");
@@ -90,13 +115,23 @@ export class GameContent extends CustomHTMLElement {
     opacity: 1,
     atlas: atlas.get("playerShip1_blue")!,
     spawn_bullets: [
-      {
-        initial_velocity: { x: 0, y: -5 },
-        life: 20,
-        cooldown: 10,
-        cooldown_init: 5,
-        atlas: atlas.get("laserBlue01")!,
-      },
+      createBulletSpawner(
+        { cooldown: 0, cooldown_init: 5 },
+        function ({ x, y }) {
+          if (this.cooldown-- > 0) return;
+          this.cooldown = this.cooldown_init;
+          const velocity = { x: 0, y: -4 };
+          return {
+            position: { x, y },
+            velocity,
+            rotate: 0,
+            opacity: 1,
+            scale: 0.2,
+            atlas: atlas.get("laserBlue01")!,
+            bullet_life: 50,
+          };
+        }
+      ),
     ],
   });
   #ghost = this.#world.add({
@@ -191,43 +226,24 @@ export class GameContent extends CustomHTMLElement {
   }
 
   #kill_bullets() {
-    const list = [];
-    for (const obj of this.#bullet_view) {
-      obj.bullet_life -= 1;
-      if (obj.bullet_life <= 0) list.push(obj);
-    }
-    list.forEach((obj) => this.#world.remove(obj));
+    this.#bullet_view
+      .iter()
+      .filter((obj) => obj.bullet_life-- <= 0)
+      .collect()
+      .forEach((item) => this.#world.remove(item));
   }
 
   #spawn_bullets() {
-    for (const {
-      position,
-      velocity: { x: vx, y: vy },
-      spawn_bullets,
-    } of this.#spawn_bullet_view) {
-      for (const info of spawn_bullets) {
-        info.cooldown--;
-        if (info.cooldown <= 0) {
-          const {
-            cooldown_init,
-            initial_velocity: { x: vdx, y: vdy },
-            life,
-            atlas,
-          } = info;
-          info.cooldown = cooldown_init;
-
-          this.#world.add({
-            position: { ...position! },
-            velocity: { x: vx + vdx, y: vy + vdy },
-            rotate: 0,
-            scale: 0.2,
-            opacity: 1.0,
-            atlas: atlas,
-            bullet_life: life,
-          });
-        }
-      }
-    }
+    this.#spawn_bullet_view
+      .iter()
+      .map(({ position, velocity, spawn_bullets }) =>
+        spawn_bullets
+          .map((info) => info(position, velocity)!)
+          .filter((x) => x != null)
+      )
+      .flatten()
+      .collect()
+      .forEach((item) => this.#world.add(item));
   }
 
   @attach("prepare", "#canvas")

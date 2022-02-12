@@ -16,8 +16,10 @@ export class View<C extends Record<string, any>> implements ViewLike {
     return this.#required;
   }
 
-  *[Symbol.iterator](): Iterator<C> {
-    yield* this.#data;
+  *[Symbol.iterator](): Generator<C> {
+    for (const item of this.#data) {
+      yield item;
+    }
   }
 
   try_add(obj: C) {

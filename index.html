@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/reset.css">
   <link rel="icon" href="data:,">
   <link rel="modulepreload" href="/deps/games.js">
+  <link rel="modulepreload" href="/deps/patch.js">
   <link rel="modulepreload" href="/js/ce.js">
   <link rel="modulepreload" href="/js/loading.js">
   <link rel="modulepreload" href="/js/utils.js">
@@ -15,7 +16,8 @@
   <link rel="modulepreload" href="/js/index.js">
   <script type="module">
     if (!("adoptedStyleSheets" in document)) await import("/deps/css.js");
-    await import("/js/index.js")
+    await import("/deps/patch.js");
+    await import("/js/index.js");
   </script>
   <title>Document</title>
 </head>
