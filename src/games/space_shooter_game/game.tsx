@@ -98,6 +98,7 @@ export class GameContent extends CustomHTMLElement {
     )
   );
   #ghost = this.#world.add({
+    tag_ghost: true,
     position: { x: 50, y: 100 },
     rotate: 0,
     scale: 0.2,

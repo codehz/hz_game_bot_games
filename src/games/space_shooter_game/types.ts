@@ -1,5 +1,12 @@
 import type { AtlasDescriptor } from "/js/atlas.js";
-import type { GenericSystemBuilder, View, ViewKey } from "/js/ecs.js";
+import type {
+  EntityProxy,
+  GenericSystemBuilder,
+  HasTag,
+  Taggable,
+  View,
+  ViewKey,
+} from "/js/ecs.js";
 import type World from "/js/ecs.js";
 
 export type Team = "NATURAL" | "FRIENDLY" | "HOSTILE";
@@ -24,7 +31,6 @@ export interface Vec2 {
 }
 
 export interface Components {
-  tag_player: true;
   position: Vec2;
   ghost_position: Vec2;
   velocity: Vec2;
@@ -47,7 +53,6 @@ export type PartialComponent<S extends keyof Components> = Pick<Components, S> &
   Partial<Components>;
 
 export const defaults: Components = {
-  tag_player: true,
   position: { x: 0, y: 0 },
   ghost_position: { x: 0, y: 0 },
   velocity: { x: 0, y: 0 },
@@ -65,6 +70,13 @@ export const defaults: Components = {
   spawn_bullets: [],
   dying: "unknown",
 };
+
+export type TaggableComponents<S extends string = string> = Components &
+  Taggable<S>;
+
+export type TaggedComponents<S extends string = string> = Components & HasTag<S>;
+
+export type OurEntity = EntityProxy<Components>;
 
 export type OurWorld = World<Components>;
 

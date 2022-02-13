@@ -7,7 +7,9 @@ export interface ViewLike {
   remove(obj: object): void;
 }
 
-export type ViewKey<T> = (string & keyof T) | `-${string & keyof T}`;
+export type ViewKey<T> =
+  | ((string & keyof T) | `tag_${string}`)
+  | `-${(string & keyof T) | `tag_${string}`}`;
 
 type MixOptional<T, S extends ViewKey<T>> = Omit<
   Partial<T> & Pick<T, S extends keyof T ? S : never>,
@@ -33,6 +35,10 @@ export class View<C extends Record<string, any>, R extends ViewKey<C>>
 
   *[Symbol.iterator](): Generator<MixOptional<C, R>> {
     for (const item of this.#data) yield item;
+  }
+
+  one(): MixOptional<C, R> | void {
+    for (const item of this.#data) return item;
   }
 
   #checked_add(obj: any) {
@@ -71,21 +77,30 @@ type AutoProp<T extends Record<string, any>> = {
     : never;
 };
 
+export type Taggable<S extends string = string> = {
+  [key in `tag_${S}`]?: true;
+};
+
+export type HasTag<S extends string = string> = {
+  [key in `tag_${S}`]: true;
+};
+
 export default class World<C extends Record<string, any>> extends Emitter {
   #template: C;
-  #entities: Map<object, Partial<C> & AutoProp<C>> = new Map();
+  #entities: Map<object, EntityProxy<C>> = new Map();
   #views: ViewLike[] = [];
   #view_index: {
-    [key in keyof C]: ViewLike[];
-  } = {} as any;
+    [key in keyof C | `tag_${string}`]?: ViewLike[];
+  } = {};
   #deferred: Function[] = [];
 
   constructor(template: C) {
     super();
     this.#template = template;
-    for (const name in template) {
-      this.#view_index[name] = [];
-    }
+  }
+
+  #index(key: keyof C | `tag_${string}`): ViewLike[] {
+    return this.#view_index[key] ?? (this.#view_index[key] = []);
   }
 
   #handler: ProxyHandler<object> = {
@@ -94,11 +109,11 @@ export default class World<C extends Record<string, any>> extends Emitter {
     get: (target, key) => {
       if (typeof key == "symbol") return undefined;
       if (key.startsWith("$")) {
-        const rk = key.slice(1);
-        if (rk in target) return Reflect.get(target, rk);
-        const ret = structuredClone(this.#template[rk]);
-        Reflect.set(target, rk, ret);
-        for (const view of this.#view_index[rk]) view.add_component(target, rk);
+        key = key.slice(1);
+        if (key in target) return Reflect.get(target, key);
+        const ret = structuredClone(this.#template[key]);
+        Reflect.set(target, key, ret);
+        for (const view of this.#index(key)) view.add_component(target, key);
         return ret;
       } else return Reflect.get(target, key);
     },
@@ -109,8 +124,7 @@ export default class World<C extends Record<string, any>> extends Emitter {
       const skipUpdate = key in target;
       Reflect.set(target, key, value);
       if (!skipUpdate)
-        for (const view of this.#view_index[key])
-          view.add_component(target, key);
+        for (const view of this.#index(key)) view.add_component(target, key);
       return true;
     },
     deleteProperty: (target, key) => {
@@ -118,25 +132,23 @@ export default class World<C extends Record<string, any>> extends Emitter {
       if (key.startsWith("$")) throw new TypeError("readonly view");
       if (key in target) {
         Reflect.deleteProperty(target, key);
-        for (const view of this.#view_index[key])
-          view.remove_component(target, key);
+        for (const view of this.#index(key)) view.remove_component(target, key);
         return true;
       }
       return false;
     },
   };
 
-  add(obj: Partial<C> = Object.create(null)): Partial<C> & AutoProp<C> {
+  add(obj: Partial<C> & Taggable = Object.create(null)): EntityProxy<C> {
     Object.setPrototypeOf(obj, null);
-    for (const key in obj) {
+    for (const key in obj)
       for (const view of this.#views) view.add_component(obj);
-    }
-    const proxy = new Proxy(obj, this.#handler) as Partial<C> & AutoProp<C>;
+    const proxy = new Proxy(obj, this.#handler) as EntityProxy<C>;
     this.#entities.set(obj, proxy);
     return proxy;
   }
 
-  defer_add(obj: Partial<C>) {
+  defer_add(obj: Partial<C> & Taggable) {
     this.#deferred.push(() => this.add(obj));
   }
 
@@ -149,7 +161,7 @@ export default class World<C extends Record<string, any>> extends Emitter {
     this.#deferred.push(() => this.remove(obj));
   }
 
-  get(obj: object): (Partial<C> & AutoProp<C>) | undefined {
+  get(obj: object): EntityProxy<C> | undefined {
     return this.#entities.get(obj);
   }
 
@@ -182,7 +194,7 @@ export default class World<C extends Record<string, any>> extends Emitter {
 
   view_by(view: ViewLike) {
     this.#views.push(view);
-    for (const key of view.interests) this.#view_index[key].push(view);
+    for (const key of view.interests) this.#index(key).push(view);
     for (const [ent] of this.#entities) view.add_component(ent as any);
   }
 
@@ -191,7 +203,7 @@ export default class World<C extends Record<string, any>> extends Emitter {
     if (idx != -1) {
       this.#views.splice(idx, 1);
       for (const key of view.interests) {
-        const list = this.#view_index[key];
+        const list = this.#index(key);
         const idx = list.indexOf(view);
         list.splice(idx, 1);
       }
@@ -199,6 +211,7 @@ export default class World<C extends Record<string, any>> extends Emitter {
   }
 }
 
+export type EntityProxy<C> = Partial<C> & AutoProp<C> & Taggable;
 export type System<I = void> = (input: I) => void;
 export type GenericSystemBuilder<C, I = void, P extends any[] = []> = (
   world: World<C>,

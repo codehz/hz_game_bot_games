@@ -1,4 +1,4 @@
-import { PartialComponent, Components, Spawner } from "./types.js";
+import type { PartialComponent, Spawner, TaggedComponents } from "./types.js";
 
 export function bullet<
   Bullet extends PartialComponent<
@@ -10,8 +10,10 @@ export function bullet<
 >(
   o: Bullet,
   die_spawn?: DieSpawn
-): Bullet & Pick<Components, "opacity" | "rotate"> {
+): Bullet &
+  Pick<TaggedComponents<"bullet">, "opacity" | "rotate" | "tag_bullet"> {
   return {
+    tag_bullet: true,
     opacity: 1,
     rotate: 0,
     die_spawn: die_spawn
@@ -32,7 +34,10 @@ export function player<
   player: T,
   ...spawn_bullets: Spawner[]
 ): T &
-  Pick<Components, "opacity" | "rotate" | "spawn_bullets" | "team" | "damage" | "tag_player"> {
+  Pick<
+    TaggedComponents<"player">,
+    "opacity" | "rotate" | "spawn_bullets" | "team" | "damage" | "tag_player"
+  > {
   return {
     tag_player: true,
     spawn_bullets,
@@ -50,7 +55,10 @@ export function enemy<
   player: T,
   ...spawn_bullets: Spawner[]
 ): T &
-  Pick<Components, "opacity" | "rotate" | "spawn_bullets" | "team" | "damage"> {
+  Pick<
+    TaggedComponents<"enemy">,
+    "opacity" | "rotate" | "spawn_bullets" | "team" | "damage"
+  > {
   return {
     spawn_bullets,
     rotate: 0,
