@@ -61,23 +61,23 @@ export class GameContent extends CustomHTMLElement {
     ]) => this.#update(size)
   );
 
-  @listen_host("pointerdown")
-  on_touch() {
-    if (document.fullscreenElement != this) {
-      this.requestFullscreen({
-        navigationUI: "hide",
-      }).catch(() => {});
-    }
-  }
+  #resize = () => {
+    Object.assign(this.style, {
+      width: `${window.innerWidth}px`,
+      height: `${window.innerHeight}px`,
+    });
+  };
 
   @mount
   on_connected() {
     this.#monitor.observe(this.canvas);
+    document.addEventListener("resize", this.#resize);
   }
 
   @unmount
   on_disconnected() {
     this.#monitor.unobserve(this.canvas);
+    document.removeEventListener("resize", this.#resize);
   }
 
   #update({ inlineSize, blockSize }: ResizeObserverSize) {
