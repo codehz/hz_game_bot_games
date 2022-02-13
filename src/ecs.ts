@@ -1,40 +1,67 @@
+import Emitter from "/js/emit.js";
+
 export interface ViewLike {
   readonly interests: string[];
-  try_add(obj: object): void;
+  add_component(obj: object, name?: string): void;
+  remove_component(obj: object, name: string): void;
   remove(obj: object): void;
 }
 
-type MixOptional<T, S extends keyof T> = Partial<T> & Pick<T, S>;
+export type ViewKey<T> = (string & keyof T) | `-${string & keyof T}`;
 
-export class View<C extends Record<string, any>, R extends keyof C>
+type MixOptional<T, S extends ViewKey<T>> = Omit<
+  Partial<T> & Pick<T, S extends keyof T ? S : never>,
+  S extends `-${infer N}` ? N : never
+>;
+
+export class View<C extends Record<string, any>, R extends ViewKey<C>>
   implements ViewLike
 {
-  #required: string[];
+  #required: string[] = [];
+  #negative: string[] = [];
   #data: Set<MixOptional<C, R>> = new Set();
 
-  constructor(...required: string[]) {
-    this.#required = required;
+  constructor(...inputs: R[]) {
+    for (const name of inputs)
+      if (name.startsWith("-")) this.#negative.push(name.slice(1));
+      else this.#required.push(name);
   }
 
-  get interests(): string[] {
-    return this.#required;
+  get interests() {
+    return [...this.#required, ...this.#negative];
   }
 
   *[Symbol.iterator](): Generator<MixOptional<C, R>> {
-    for (const item of this.#data) {
-      yield item;
-    }
+    for (const item of this.#data) yield item;
   }
 
-  try_add(obj: MixOptional<C, R>) {
-    if (this.#data.has(obj)) return;
-    if (this.#required.every((key) => key in obj)) {
+  #checked_add(obj: any) {
+    if (
+      this.#required.every((key) => key in obj) &&
+      this.#negative.every((key) => !(key in obj))
+    )
       this.#data.add(obj);
-    }
   }
 
-  remove(obj: Partial<C>) {
-    this.#data.delete(obj as any);
+  add_component(obj: any, name?: string) {
+    if (this.#data.has(obj)) {
+      if (
+        name
+          ? this.#negative.includes(name)
+          : this.#negative.some((key) => key in obj)
+      )
+        this.#data.delete(obj);
+    } else this.#checked_add(obj);
+  }
+
+  remove_component(obj: any, name: string) {
+    if (this.#data.has(obj)) {
+      console.assert(this.#required.includes(name))
+      this.#data.delete(obj);
+    } else this.#checked_add(obj);
+  }
+  remove(obj: any) {
+    this.#data.delete(obj);
   }
 }
 
@@ -44,17 +71,20 @@ type AutoProp<T extends Record<string, any>> = {
     : never;
 };
 
-export default class World<C extends Record<string, any>> {
+export default class World<C extends Record<string, any>> extends Emitter {
   #template: C;
   #entities: Map<object, Partial<C> & AutoProp<C>> = new Map();
   #views: ViewLike[] = [];
-  #viewref: {
+  #view_index: {
     [key in keyof C]: ViewLike[];
   } = {} as any;
 
   constructor(template: C) {
+    super();
     this.#template = template;
-    for (const name in template) this.#viewref[name] = [];
+    for (const name in template) {
+      this.#view_index[name] = [];
+    }
   }
 
   #handler: ProxyHandler<object> = {
@@ -67,7 +97,7 @@ export default class World<C extends Record<string, any>> {
         if (rk in target) return Reflect.get(target, rk);
         const ret = structuredClone(this.#template[rk]);
         Reflect.set(target, rk, ret);
-        for (const view of this.#viewref[rk]) view.try_add(target);
+        for (const view of this.#view_index[rk]) view.add_component(target, rk);
         return ret;
       } else return Reflect.get(target, key);
     },
@@ -78,7 +108,7 @@ export default class World<C extends Record<string, any>> {
       const skipUpdate = key in target;
       Reflect.set(target, key, value);
       if (!skipUpdate)
-        for (const view of this.#viewref[key]) view.try_add(target);
+        for (const view of this.#view_index[key]) view.add_component(target, key);
       return true;
     },
     deleteProperty: (target, key) => {
@@ -86,7 +116,8 @@ export default class World<C extends Record<string, any>> {
       if (key.startsWith("$")) throw new TypeError("readonly view");
       if (key in target) {
         Reflect.deleteProperty(target, key);
-        for (const view of this.#viewref[key]) view.remove(target);
+        for (const view of this.#view_index[key])
+          view.remove_component(target, key);
         return true;
       }
       return false;
@@ -95,9 +126,9 @@ export default class World<C extends Record<string, any>> {
 
   add(obj: Partial<C> = Object.create(null)): Partial<C> & AutoProp<C> {
     Object.setPrototypeOf(obj, null);
-    for (const key in obj)
-      if (obj[key] != null)
-        for (const view of this.#viewref[key]) view.try_add(obj);
+    for (const key in obj) {
+      for (const view of this.#views) view.add_component(obj);
+    }
     const proxy = new Proxy(obj, this.#handler) as Partial<C> & AutoProp<C>;
     this.#entities.set(obj, proxy);
     return proxy;
@@ -112,7 +143,7 @@ export default class World<C extends Record<string, any>> {
     return this.#entities.get(obj);
   }
 
-  view<V extends string & keyof C>(...keys: V[]): View<C, V> {
+  view<V extends ViewKey<C>>(...keys: V[]): View<C, V> {
     const ret = new View<C, V>(...keys);
     this.view_by(ret);
     return ret;
@@ -120,8 +151,8 @@ export default class World<C extends Record<string, any>> {
 
   view_by(view: ViewLike) {
     this.#views.push(view);
-    for (const key of view.interests) this.#viewref[key].push(view);
-    for (const [ent] of this.#entities) view.try_add(ent as any);
+    for (const key of view.interests) this.#view_index[key].push(view);
+    for (const [ent] of this.#entities) view.add_component(ent as any);
   }
 
   remove_view(view: ViewLike) {
@@ -129,7 +160,7 @@ export default class World<C extends Record<string, any>> {
     if (idx != -1) {
       this.#views.splice(idx, 1);
       for (const key of view.interests) {
-        const list = this.#viewref[key];
+        const list = this.#view_index[key];
         const idx = list.indexOf(view);
         list.splice(idx, 1);
       }

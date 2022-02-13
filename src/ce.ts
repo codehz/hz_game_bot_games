@@ -1,3 +1,5 @@
+import { EmitterMixin } from  "/js/emit.js";
+
 const $selector = Symbol("selector");
 const $template = Symbol("template");
 const $shadow = Symbol("shadow");
@@ -40,27 +42,13 @@ export declare interface CustomHTMLElement {
   [$frame]?: number;
 }
 
-export abstract class CustomHTMLElement extends HTMLElement {
+export abstract class CustomHTMLElement extends EmitterMixin(HTMLElement) {
   #listeners: { node: Node; event: string; listener: EventListener }[] = [];
   #attached_listeners: {
     node: CustomHTMLElement;
     event: string;
     listener: Function;
   }[] = [];
-  #handlers: Record<string, Function[]> = {};
-
-  on(event: string, handler: Function) {
-    const handlers = this.#handlers[event] ?? [];
-    this.#handlers[event] = [...handlers, handler];
-  }
-
-  off(event: string, handler: Function) {
-    this.#handlers[event] = this.#handlers[event]!.filter((x) => x != handler);
-  }
-
-  emit(event: string, ...args: any[]) {
-    this.#handlers[event]?.forEach((handler) => handler.apply(this, args));
-  }
 
   protected set shadowTemplate(shadow: Node) {
     const root = this.shadowRoot ?? this.attachShadow({ mode: "open" });

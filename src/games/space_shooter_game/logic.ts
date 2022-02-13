@@ -16,7 +16,7 @@ export const clean_dying = makeSystem(["dying", "position"], function (view) {
 });
 
 export const clean_range = makeSystem(
-  ["position", "velocity"],
+  ["position", "velocity", "-tag_player"],
   function (view, range: number) {
     view
       .iter()

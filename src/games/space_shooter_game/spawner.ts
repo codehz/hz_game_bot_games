@@ -32,8 +32,9 @@ export function player<
   player: T,
   ...spawn_bullets: Spawner[]
 ): T &
-  Pick<Components, "opacity" | "rotate" | "spawn_bullets" | "team" | "damage"> {
+  Pick<Components, "opacity" | "rotate" | "spawn_bullets" | "team" | "damage" | "tag_player"> {
   return {
+    tag_player: true,
     spawn_bullets,
     rotate: 0,
     opacity: 1,

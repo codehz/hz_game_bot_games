@@ -1,5 +1,5 @@
 import type { AtlasDescriptor } from "/js/atlas.js";
-import type { GenericSystemBuilder, View } from "/js/ecs.js";
+import type { GenericSystemBuilder, View, ViewKey } from "/js/ecs.js";
 import type World from "/js/ecs.js";
 
 export type Team = "NATURAL" | "FRIENDLY" | "HOSTILE";
@@ -74,7 +74,7 @@ export type SystemBuilder<
 > = GenericSystemBuilder<Components, I, P>;
 
 export function makeSystem<
-  R extends keyof Components,
+  R extends ViewKey<Components>,
   I = void,
   P extends any[] = []
 >(
