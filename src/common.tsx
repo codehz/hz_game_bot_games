@@ -10,6 +10,7 @@ import {
   prop,
   select,
   shadow,
+  unmount,
   watch,
 } from "/js/ce.js";
 import jsx from "/js/jsx.js";
@@ -651,5 +652,49 @@ export class PageSelector extends CustomHTMLElement {
   go_next() {
     this.input.valueAsNumber++;
     this.#notifyIfNeeded();
+  }
+}
+
+@customElement("sized-container")
+@shadow(
+  <>
+    <div id="sensor" aria-hidden="true" />
+    <slot />
+  </>
+)
+@css`
+  :host {
+    display: contents;
+  }
+  #sensor {
+    display: block;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    user-select: none;
+  }
+`
+export class SizedContainer extends CustomHTMLElement {
+  #observer = new ResizeObserver(
+    ([
+      {
+        borderBoxSize: [{ inlineSize: width, blockSize: height }],
+      },
+    ]) => {
+      this.style.setProperty("--width", width + "px");
+      this.style.setProperty("--height", height + "px");
+    }
+  );
+  @id("sensor")
+  sensor!: HTMLDivElement;
+
+  @mount
+  mount() {
+    this.#observer.observe(this.sensor);
+  }
+
+  @unmount
+  unmount() {
+    this.#observer.unobserve(this.sensor);
   }
 }

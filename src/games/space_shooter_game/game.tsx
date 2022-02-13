@@ -37,10 +37,6 @@ const { sheet, atlas } = await loading;
     background: #222;
   }
 
-  atlas-viewer {
-    padding: 10px;
-  }
-
   #canvas {
     height: 150vw;
     width: 100vw;

@@ -12,6 +12,8 @@ const kind = splitImportURL(import.meta.url);
 
 if (kind.ver == "atlas") {
   await import("./atlas.js");
+} else if (kind.ver == "probe") {
+  await import("./probe.js");
 } else {
   await import("./game.js?" + kind.ver);
 }
