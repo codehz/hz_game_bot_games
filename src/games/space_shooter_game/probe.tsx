@@ -27,6 +27,7 @@ import { SizedContainer } from "/js/common.js";
     height: 100vh;
     background: red;
     position: relative;
+    font-family: "kenvector future thin";
   }
 
   #canvas {
@@ -35,6 +36,23 @@ import { SizedContainer } from "/js/common.js";
     max-width: calc(var(--height) * 2 / 3);
     width: var(--width);
     background: green;
+    position: relative;
+  }
+  #canvas::before {
+    content: "TOP LEFT";
+    top: 0;
+    left: 0;
+  }
+  #canvas::after {
+    content: "BOTTOM RIGHT";
+    bottom: 0;
+    right: 0;
+  }
+  #canvas::before,#canvas::after {
+    position: absolute;
+    background: white;
+    padding: 2px 4px;
+    color: black;
   }
 
   #diag {
@@ -44,7 +62,6 @@ import { SizedContainer } from "/js/common.js";
     width: fit-content;
     transform: translate(-50%, -50%);
     color: var(--fgcolor);
-    font-family: "kenvector future thin";
   }
 `
 export class GameContent extends CustomHTMLElement {
