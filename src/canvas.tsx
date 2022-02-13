@@ -1,8 +1,4 @@
-import { AtlasDescriptor } from "/js/atlas.js";
 import {
-  attach,
-  ClonableElement,
-  ClonableElementWithChildren,
   css,
   customElement,
   CustomHTMLElement,
@@ -13,7 +9,6 @@ import {
   tag,
 } from "/js/ce.js";
 import jsx from "/js/jsx.js";
-import type { View } from "/js/ecs.js";
 
 @customElement("game-canvas")
 @tag("canvas-context")
@@ -77,34 +72,4 @@ export default class GameCanvas extends CustomHTMLElement {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.emit("frame", this.ctx);
   }
-}
-
-export function renderSprites<
-  V extends {
-    position: { x: number; y: number };
-    rotate: number;
-    scale: number;
-    opacity: number;
-    atlas: AtlasDescriptor;
-  }
->({ view, image }: { view: View<V>; image: ImageBitmap }) {
-  return (ctx: CanvasRenderingContext2D) => {
-    for (const {
-      atlas,
-      position: { x, y },
-      rotate,
-      scale,
-      opacity,
-    } of view) {
-      const { width, height } = atlas;
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(rotate);
-      ctx.scale(scale, scale);
-      ctx.translate(-width / 2, -height / 2);
-      ctx.globalAlpha = opacity;
-      atlas.blit(ctx, image);
-      ctx.restore();
-    }
-  };
 }

@@ -96,7 +96,8 @@ export default class World<C extends Record<string, any>> {
   add(obj: Partial<C> = Object.create(null)): Partial<C> & AutoProp<C> {
     Object.setPrototypeOf(obj, null);
     for (const key in obj)
-      for (const view of this.#viewref[key]) view.try_add(obj);
+      if (obj[key] != null)
+        for (const view of this.#viewref[key]) view.try_add(obj);
     const proxy = new Proxy(obj, this.#handler) as Partial<C> & AutoProp<C>;
     this.#entities.set(obj, proxy);
     return proxy;
@@ -135,3 +136,9 @@ export default class World<C extends Record<string, any>> {
     }
   }
 }
+
+export type System<I = void> = (input: I) => void;
+export type GenericSystemBuilder<C, I = void, P extends any[] = []> = (
+  world: World<C>,
+  ...params: P
+) => System<I>;

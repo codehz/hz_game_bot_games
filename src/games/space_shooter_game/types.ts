@@ -1,4 +1,6 @@
-import { AtlasDescriptor } from "/js/atlas.js";
+import type { AtlasDescriptor } from "/js/atlas.js";
+import type { GenericSystemBuilder, View } from "/js/ecs.js";
+import type World from "/js/ecs.js";
 
 export type Team = "NATURAL" | "FRIENDLY" | "HOSTILE";
 
@@ -11,11 +13,7 @@ export interface Spawner<
 
 export function createBulletSpawner<
   State,
-  Input extends {
-    position: { x: number; y: number };
-  } & Partial<Components> = {
-    position: { x: number; y: number };
-  } & Partial<Components>
+  Input extends PartialComponent<"position"> = PartialComponent<"position">
 >(state: State, f: Spawner<State, Input>): Spawner<void> {
   return f.bind(state) as unknown as Spawner<void>;
 }
@@ -67,3 +65,29 @@ export const defaults: Components = {
   spawn_bullets: [],
   dying: "unknown",
 };
+
+export type OurWorld = World<Components>;
+
+export type SystemBuilder<
+  I = void,
+  P extends any[] = []
+> = GenericSystemBuilder<Components, I, P>;
+
+export function makeSystem<
+  R extends keyof Components,
+  I = void,
+  P extends any[] = []
+>(
+  interests: R[],
+  f: (
+    this: World<Components>,
+    view: View<Components, R>,
+    input: I,
+    ...params: P
+  ) => void
+): SystemBuilder<I, P> {
+  return (world, ...params) => {
+    const view = world.view(...interests);
+    return (input) => f.call(world, view, input, ...params);
+  };
+}

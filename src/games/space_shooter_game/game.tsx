@@ -9,12 +9,15 @@ import {
   listen_host,
   listen_closest,
 } from "/js/ce.js";
-import GameCanvas, { renderSprites } from "/js/canvas.js";
+import GameCanvas from "/js/canvas.js";
 import loading from "./loader.js";
 import World from "/js/ecs.js";
 import { AtlasDescriptor } from "/js/atlas.js";
 import { Timer } from "/js/utils.js";
 import { defaults, createBulletSpawner } from "./types.js";
+import * as rendering from "./render.js";
+import * as logic from "./logic.js";
+import * as spawner from "./spawner.js";
 
 const { sheet, atlas } = await loading;
 
@@ -58,73 +61,49 @@ export class GameContent extends CustomHTMLElement {
 
   #world = new World(defaults);
 
-  #moving_view = this.#world.view("position", "velocity");
-  #bullet_view = this.#world.view("keep_alive");
-  #collision_receive_view = this.#world.view(
-    "position",
-    "hitbox",
-    "team",
-    "life"
-  );
-  #collision_sender_view = this.#world.view(
-    "position",
-    "hitbox",
-    "team",
-    "damage"
-  );
-  #spawn_bullet_view = this.#world.view(
-    "position",
-    "velocity",
-    "spawn_bullets"
-  );
+  #moving = logic.moving(this.#world);
+  #keep_alive = logic.keep_alive(this.#world);
+  #collision_detection = logic.collision_detection(this.#world);
+  #spawn_bullets = logic.spawn_bullets(this.#world);
+  #clean_range = logic.clean_range(this.#world);
+  #clean_dying = logic.clean_dying(this.#world);
+  #auto_rotate = logic.auto_rotate(this.#world);
+  #rendering = rendering.sprite(this.#world, sheet);
+  #debug_hitbox = rendering.debug_hitbox(this.#world);
   #life_view = this.#world.view("life");
-  #clean_range_view = this.#world.view("position", "velocity");
-  #dying_view = this.#world.view("dying", "position");
-  #rendering = renderSprites({
-    view: this.#world.view("position", "rotate", "scale", "opacity", "atlas"),
-    image: sheet,
-  });
-  #hitbox_debug_view = this.#world.view("position", "hitbox", "team");
-  #auto_rotate_view = this.#world.view("rotate", "auto_rotate");
 
-  #player = this.#world.add({
-    life: 100,
-    damage: 100,
-    team: "FRIENDLY",
-    hitbox: { halfheight: 5, halfwidth: 3 },
-    position: { x: 50, y: 100 },
-    velocity: { x: 0, y: 0 },
-    rotate: 0,
-    scale: 0.2,
-    opacity: 1,
-    atlas: atlas.get("playerShip1_blue")!,
-    spawn_bullets: [
+  #player = this.#world.add(
+    spawner.player(
+      {
+        life: 100,
+        hitbox: { halfheight: 5, halfwidth: 3 },
+        position: { x: 50, y: 100 },
+        velocity: { x: 0, y: 0 },
+        scale: 0.2,
+        atlas: atlas.get("playerShip1_blue")!,
+      },
       createBulletSpawner(new Timer(20), function ({ position: { x, y } }) {
         if (!this.next()) return;
-        const velocity = { x: 0, y: -2 };
-        return {
-          position: { x, y },
-          velocity,
-          rotate: 0,
-          opacity: 1,
-          scale: 0.2,
-          atlas: atlas.get("laserBlue01")!,
-          keep_alive: 100,
-          damage: 50,
-          team: "FRIENDLY",
-          hitbox: { halfwidth: 0.5, halfheight: 3 },
-          die_spawn: ({ position: { x, y } }) => ({
+        return spawner.bullet(
+          {
             position: { x, y },
-            rotate: Math.random() * Math.PI * 2,
-            opacity: 1,
+            velocity: { x: 0, y: -2 },
             scale: 0.2,
+            atlas: atlas.get("laserBlue01")!,
+            keep_alive: 100,
+            damage: 50,
+            team: "FRIENDLY",
+            hitbox: { halfwidth: 0.5, halfheight: 3 },
+          },
+          {
             atlas: atlas.get("laserBlue08")!,
+            scale: 0.2,
             keep_alive: 20,
-          }),
-        };
-      }),
-    ],
-  });
+          }
+        );
+      })
+    )
+  );
   #ghost = this.#world.add({
     position: { x: 50, y: 100 },
     rotate: 0,
@@ -187,95 +166,42 @@ export class GameContent extends CustomHTMLElement {
     }
   }
 
-  #iter_velocity() {
-    for (const { position, velocity } of this.#moving_view) {
-      position.x += velocity.x;
-      position.y += velocity.y;
-    }
-  }
-
-  #kill_bullets() {
-    this.#bullet_view
-      .iter()
-      .filter((obj) => obj.keep_alive-- <= 0)
-      .forEach((obj) => (this.#world.get(obj)!.dying = "timeout"));
-  }
-
-  #spawn_bullets() {
-    this.#spawn_bullet_view
-      .iter()
-      .flatMap((o) =>
-        o.spawn_bullets.map((info) => info(o)!).filter((x) => x != null)
-      )
-      .toArray()
-      .forEach((item) => this.#world.add(item));
-  }
-
   #enemy_timer = new Timer(100);
   #spawn_enemy() {
     if (!this.#enemy_timer.next()) return;
-    this.#world.add({
-      hitbox: { halfwidth: 5, halfheight: 5 },
-      team: "HOSTILE",
-      damage: 100,
-      life: 100,
-      position: { x: Math.random() * 80 + 10, y: -10 },
-      velocity: { x: 0, y: 0.5 },
-      rotate: 0,
-      opacity: 1,
-      scale: 0.2,
-      atlas: atlas.get("cockpitBlue_0")!,
-      spawn_bullets: [
+    this.#world.add(
+      spawner.enemy(
+        {
+          hitbox: { halfwidth: 5, halfheight: 5 },
+          life: 100,
+          position: { x: Math.random() * 80 + 10, y: -10 },
+          velocity: { x: 0, y: 0.5 },
+          scale: 0.2,
+          atlas: atlas.get("cockpitBlue_0")!,
+        },
         createBulletSpawner(new Timer(40), function ({ position: { x, y } }) {
           if (!this.next()) return;
-          const velocity = { x: 0, y: 1 };
-          return {
-            position: { x, y },
-            velocity,
-            rotate: Math.PI,
-            opacity: 1,
-            scale: 0.2,
-            atlas: atlas.get("laserRed01")!,
-            keep_alive: 500,
-            team: "HOSTILE",
-            hitbox: { halfwidth: 0.5, halfheight: 3 },
-            damage: 10,
-            die_spawn: ({ position: { x, y } }) => ({
+          return spawner.bullet(
+            {
               position: { x, y },
-              rotate: Math.random() * Math.PI * 2,
-              opacity: 1,
+              velocity: { x: 0, y: 1 },
+              rotate: Math.PI,
+              scale: 0.2,
+              atlas: atlas.get("laserRed01")!,
+              keep_alive: 500,
+              team: "HOSTILE",
+              hitbox: { halfwidth: 0.5, halfheight: 3 },
+              damage: 10,
+            },
+            {
               scale: 0.2,
               atlas: atlas.get("laserRed08")!,
               keep_alive: 20,
-            }),
-          };
-        }),
-      ],
-    });
-  }
-
-  #collision_detection() {
-    for (const a of this.#collision_receive_view) {
-      const {
-        position: { x, y },
-        hitbox: { halfwidth, halfheight },
-      } = a;
-      const [x_min, x_max] = [x - halfwidth, x + halfwidth];
-      const [y_min, y_max] = [y - halfheight, y + halfheight];
-      for (const b of this.#collision_sender_view) {
-        const {
-          position: { x, y },
-          hitbox: { halfwidth, halfheight },
-        } = b;
-        if (a.team == b.team) continue;
-        const [x_min2, x_max2] = [x - halfwidth, x + halfwidth];
-        const [y_min2, y_max2] = [y - halfheight, y + halfheight];
-        if (x_max < x_min2 || x_min > x_max2) continue;
-        if (y_max < y_min2 || y_min > y_max2) continue;
-        a.life -= b.damage;
-        this.#world.get(b)!.dying = "self destructure";
-      }
-    }
+            }
+          );
+        })
+      )
+    );
   }
 
   #clean_life() {
@@ -283,35 +209,6 @@ export class GameContent extends CustomHTMLElement {
       .iter()
       .filter((o) => o.life <= 0)
       .forEach((o) => (this.#world.get(o)!.dying = "low life"));
-  }
-
-  #clean_range() {
-    this.#clean_range_view
-      .iter()
-      .filter(
-        ({ position: { x, y }, velocity: { x: vx, y: vy } }) =>
-          (x < -10 && vx <= 0) ||
-          (x > 110 && vx >= 0) ||
-          (y < -10 && vy <= 0) ||
-          (y >= 160 && vy > 0)
-      )
-      .toArray()
-      .forEach((o) => this.#world.remove(o));
-  }
-
-  #clean_dying() {
-    const list = this.#dying_view.iter().toArray();
-    list
-      .map((o) => this.#world.get(o)!.die_spawn?.(o as any)!)
-      .filter((o) => !!o)
-      .forEach((o) => this.#world.add(o));
-    list.forEach((o) => this.#world.remove(o));
-  }
-
-  #auto_rotate() {
-    for (const o of this.#auto_rotate_view) {
-      o.rotate += o.auto_rotate;
-    }
   }
 
   @attach("prepare", "#canvas")
@@ -330,30 +227,14 @@ export class GameContent extends CustomHTMLElement {
     this.#move_ghost();
     this.#move_player();
     this.#limit_player();
-    this.#iter_velocity();
-    this.#kill_bullets();
+    this.#moving();
+    this.#keep_alive();
     this.#clean_range();
     this.#collision_detection();
     this.#clean_life();
     this.#clean_dying();
     this.#spawn_bullets();
     this.#spawn_enemy();
-  }
-
-  #debug_hitbox(ctx: CanvasRenderingContext2D) {
-    ctx.save();
-    for (const {
-      position: { x, y },
-      hitbox: { halfwidth, halfheight },
-      team,
-    } of this.#hitbox_debug_view) {
-      const x_min = x - halfwidth;
-      const y_min = y - halfheight;
-      ctx.fillStyle =
-        team == "FRIENDLY" ? "#0f07" : team == "HOSTILE" ? "#f007" : "#00f7";
-      ctx.fillRect(x_min, y_min, halfwidth * 2, halfheight * 2);
-    }
-    ctx.restore();
   }
 
   @attach("frame", "#canvas")

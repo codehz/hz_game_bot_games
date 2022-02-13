@@ -1,11 +1,29 @@
 import { PartialComponent, Components, Spawner } from "./types.js";
 
 export function bullet<
-  T extends PartialComponent<
-    "position" | "velocity" | "hitbox" | "damage" | "team" | "scale"
-  >
->(o: T): T & Pick<Components, "opacity" | "rotate"> {
-  return { opacity: 1, rotate: 0, ...o };
+  Bullet extends PartialComponent<
+    "position" | "velocity" | "hitbox" | "damage" | "team" | "scale" | "atlas"
+  >,
+  DieSpawn extends PartialComponent<
+    "keep_alive" | "scale" | "atlas"
+  > = PartialComponent<"keep_alive" | "scale" | "atlas">
+>(
+  o: Bullet,
+  die_spawn?: DieSpawn
+): Bullet & Pick<Components, "opacity" | "rotate"> {
+  return {
+    opacity: 1,
+    rotate: 0,
+    die_spawn: die_spawn
+      ? ({ position: { x, y } }) => ({
+          opacity: 1,
+          rotate: Math.random() * Math.PI * 2,
+          position: { x, y },
+          ...die_spawn,
+        })
+      : undefined,
+    ...o,
+  };
 }
 
 export function player<
