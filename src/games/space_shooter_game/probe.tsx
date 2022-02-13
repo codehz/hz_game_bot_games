@@ -34,7 +34,7 @@ import { SizedContainer } from "/js/common.js";
     min-width: calc(var(--height) / 3);
     max-width: calc(var(--height) * 2 / 3);
     width: var(--width);
-    background: #000;
+    background: green;
   }
 
   #diag {
