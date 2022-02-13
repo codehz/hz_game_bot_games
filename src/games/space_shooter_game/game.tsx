@@ -8,24 +8,26 @@ import {
   attach,
   listen_host,
   listen_closest,
+  mount,
+  unmount,
 } from "/js/ce.js";
 import GameCanvas from "/js/canvas.js";
 import loading from "./loader.js";
 import World from "/js/ecs.js";
-import { AtlasDescriptor } from "/js/atlas.js";
 import { Timer } from "/js/utils.js";
 import { defaults, createBulletSpawner } from "./types.js";
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
 import * as spawner from "./spawner.js";
+import { SizedContainer } from "/js/common.js";
 
 const { sheet, atlas } = await loading;
 
 @customElement("game-content")
 @shadow(
-  <>
+  <SizedContainer>
     <GameCanvas id="canvas" />
-  </>
+  </SizedContainer>
 )
 @css`
   :host {
@@ -38,17 +40,12 @@ const { sheet, atlas } = await loading;
   }
 
   #canvas {
-    height: 150vw;
-    width: 100vw;
+    height: var(--height);
+    min-width: calc(var(--height) / 3);
+    max-width: calc(var(--height) * 2 / 3);
+    width: var(--width);
     overflow: none;
     background: #000;
-  }
-
-  @media (min-aspect-ratio: 2/3) {
-    #canvas {
-      height: 100vh;
-      width: calc(100vh * 2 / 3);
-    }
   }
 `
 export class GameContent extends CustomHTMLElement {
@@ -354,5 +351,23 @@ export class GameContent extends CustomHTMLElement {
   on_cancel({ isPrimary }: PointerEvent) {
     if (!isPrimary) return;
     this.#offset = undefined;
+  }
+
+  #resize = () => {
+    Object.assign(this.style, {
+      width: `${window.innerWidth}px`,
+      height: `${window.innerHeight}px`,
+    });
+  };
+
+  @mount
+  on_connected() {
+    this.#resize();
+    window.addEventListener("resize", this.#resize);
+  }
+
+  @unmount
+  on_disconnected() {
+    window.removeEventListener("resize", this.#resize);
   }
 }
