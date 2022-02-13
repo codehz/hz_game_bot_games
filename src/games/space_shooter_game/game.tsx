@@ -124,7 +124,10 @@ export class GameContent extends CustomHTMLElement {
     if (this.#ghost_target) {
       let { x, y } = this.#ghost_target;
       this.#ghost.position!.x = Math.min(Math.max(x, 10), 90);
-      this.#ghost.position!.y = Math.min(Math.max(y, 10), this.canvas.height - 10);
+      this.#ghost.position!.y = Math.min(
+        Math.max(y, 10),
+        this.canvas.height - 10
+      );
     }
   }
 
@@ -228,6 +231,8 @@ export class GameContent extends CustomHTMLElement {
     this.#clean_dying();
     this.#spawn_bullets();
     this.#spawn_enemy();
+
+    this.#world.sync();
   }
 
   @attach("frame", "#canvas")

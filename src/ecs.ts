@@ -56,7 +56,7 @@ export class View<C extends Record<string, any>, R extends ViewKey<C>>
 
   remove_component(obj: any, name: string) {
     if (this.#data.has(obj)) {
-      console.assert(this.#required.includes(name))
+      console.assert(this.#required.includes(name));
       this.#data.delete(obj);
     } else this.#checked_add(obj);
   }
@@ -78,6 +78,7 @@ export default class World<C extends Record<string, any>> extends Emitter {
   #view_index: {
     [key in keyof C]: ViewLike[];
   } = {} as any;
+  #deferred: Function[] = [];
 
   constructor(template: C) {
     super();
@@ -108,7 +109,8 @@ export default class World<C extends Record<string, any>> extends Emitter {
       const skipUpdate = key in target;
       Reflect.set(target, key, value);
       if (!skipUpdate)
-        for (const view of this.#view_index[key]) view.add_component(target, key);
+        for (const view of this.#view_index[key])
+          view.add_component(target, key);
       return true;
     },
     deleteProperty: (target, key) => {
@@ -134,13 +136,42 @@ export default class World<C extends Record<string, any>> extends Emitter {
     return proxy;
   }
 
+  defer_add(obj: Partial<C>) {
+    this.#deferred.push(() => this.add(obj));
+  }
+
   remove(obj: Partial<C>) {
     for (const view of this.#views) view.remove(obj);
     this.#entities.delete(obj);
   }
 
+  defer_remove(obj: Partial<C>) {
+    this.#deferred.push(() => this.remove(obj));
+  }
+
   get(obj: object): (Partial<C> & AutoProp<C>) | undefined {
     return this.#entities.get(obj);
+  }
+
+  defer_add_component<K extends keyof C>(obj: object, key: K, value: C[K]) {
+    if (key in obj) (obj as any)[key] = value;
+    else {
+      const cache = this.get(obj)!;
+      console.assert(cache != null);
+      this.#deferred.push(() => (cache[key] = value));
+    }
+  }
+
+  defer_remove_component(obj: object, key: keyof C) {
+    if (key in obj) {
+      const cache = this.get(obj)!;
+      console.assert(cache != null);
+      this.#deferred.push(() => delete cache[key]);
+    }
+  }
+
+  sync() {
+    this.#deferred.splice(0).forEach((f) => f());
   }
 
   view<V extends ViewKey<C>>(...keys: V[]): View<C, V> {

@@ -7,12 +7,13 @@ export const auto_rotate = makeSystem(["auto_rotate", "rotate"], (view) => {
 });
 
 export const clean_dying = makeSystem(["dying", "position"], function (view) {
-  const list = [...view];
-  list
-    .map((o) => o.die_spawn?.(o as any)!)
-    .filter((o) => !!o)
-    .forEach((o) => this.add(o));
-  list.forEach((o) => this.remove(o));
+  for (const item of view) {
+    this.defer_remove(item);
+    const spawnned = item.die_spawn?.(item);
+    if (spawnned) {
+      this.defer_add(spawnned);
+    }
+  }
 });
 
 export const clean_range = makeSystem(
@@ -27,8 +28,7 @@ export const clean_range = makeSystem(
           (y < -10 && vy <= 0) ||
           (y >= range + 10 && vy > 0)
       )
-      .toArray()
-      .forEach((o) => this.remove(o));
+      .forEach((o) => this.defer_remove(o));
   }
 );
 
@@ -40,8 +40,7 @@ export const spawn_bullets = makeSystem(
       .flatMap((o) =>
         o.spawn_bullets.map((info) => info(o)!).filter((x) => x != null)
       )
-      .toArray()
-      .forEach((item) => this.add(item));
+      .forEach((item) => this.defer_add(item));
   }
 );
 
