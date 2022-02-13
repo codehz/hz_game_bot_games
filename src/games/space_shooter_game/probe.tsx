@@ -88,13 +88,14 @@ export class GameContent extends CustomHTMLElement {
   @mount
   on_connected() {
     this.#monitor.observe(this.canvas);
-    document.addEventListener("resize", this.#resize);
+    this.#resize();
+    window.addEventListener("resize", this.#resize);
   }
 
   @unmount
   on_disconnected() {
     this.#monitor.unobserve(this.canvas);
-    document.removeEventListener("resize", this.#resize);
+    window.removeEventListener("resize", this.#resize);
   }
 
   #update({ inlineSize, blockSize }: ResizeObserverSize) {
