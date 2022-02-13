@@ -1,4 +1,5 @@
 {
+  "name": "hz_game_bot_games",
   "scripts": {
     "postinstall": "tsc",
     "watch": "tsc -w"
