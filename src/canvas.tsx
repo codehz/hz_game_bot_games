@@ -27,10 +27,15 @@ export default class GameCanvas extends CustomHTMLElement {
 
   ctx!: CanvasRenderingContext2D;
 
+  #height: number = 0;
   #scale: number = 1;
 
   get scale() {
     return this.#scale / devicePixelRatio;
+  }
+
+  get height() {
+    return this.#height;
   }
 
   #resizeObserver = new ResizeObserver(
@@ -49,6 +54,7 @@ export default class GameCanvas extends CustomHTMLElement {
         width: `${rwidth}px`,
         height: `${rheight}px`,
       });
+      this.#height = height / width * 100;
       Object.assign(this.canvas, { width, height });
       this.#scale = width / 100;
     }

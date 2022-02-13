@@ -17,7 +17,7 @@ export const clean_dying = makeSystem(["dying", "position"], function (view) {
 
 export const clean_range = makeSystem(
   ["position", "velocity"],
-  function (view) {
+  function (view, range: number) {
     view
       .iter()
       .filter(
@@ -25,7 +25,7 @@ export const clean_range = makeSystem(
           (x < -10 && vx <= 0) ||
           (x > 110 && vx >= 0) ||
           (y < -10 && vy <= 0) ||
-          (y >= 160 && vy > 0)
+          (y >= range + 10 && vy > 0)
       )
       .toArray()
       .forEach((o) => this.remove(o));

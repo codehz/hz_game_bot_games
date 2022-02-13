@@ -124,7 +124,7 @@ export class GameContent extends CustomHTMLElement {
     if (this.#ghost_target) {
       let { x, y } = this.#ghost_target;
       this.#ghost.position!.x = Math.min(Math.max(x, 10), 90);
-      this.#ghost.position!.y = Math.min(Math.max(y, 10), 140);
+      this.#ghost.position!.y = Math.min(Math.max(y, 10), this.canvas.height - 10);
     }
   }
 
@@ -154,7 +154,7 @@ export class GameContent extends CustomHTMLElement {
     }
     if (y < 10) {
       this.#player.velocity!.y += 1;
-    } else if (y > 140) {
+    } else if (y > this.canvas.height - 10) {
       this.#player.velocity!.y -= 1;
     }
   }
@@ -222,7 +222,7 @@ export class GameContent extends CustomHTMLElement {
     this.#limit_player();
     this.#moving();
     this.#keep_alive();
-    this.#clean_range();
+    this.#clean_range(this.canvas.height);
     this.#collision_detection();
     this.#clean_life();
     this.#clean_dying();
