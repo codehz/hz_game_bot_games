@@ -79,8 +79,8 @@ export class GameContent extends CustomHTMLElement {
         contentBoxSize: [{ blockSize: rheight, inlineSize: rwidth }],
         devicePixelContentBoxSize: [
           {
-            blockSize: height = Math.floor(rheight * devicePixelRatio) | 0,
-            inlineSize: width = Math.floor(rwidth * devicePixelRatio) | 0,
+            blockSize: height = (rheight * devicePixelRatio) | 0,
+            inlineSize: width = (rwidth * devicePixelRatio) | 0,
           } = {},
         ] = [],
       },
