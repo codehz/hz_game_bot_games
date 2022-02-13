@@ -48,7 +48,8 @@ import { SizedContainer } from "/js/common.js";
     bottom: 0;
     right: 0;
   }
-  #canvas::before,#canvas::after {
+  #canvas::before,
+  #canvas::after {
     position: absolute;
     background: white;
     padding: 2px 4px;
@@ -62,6 +63,8 @@ import { SizedContainer } from "/js/common.js";
     width: fit-content;
     transform: translate(-50%, -50%);
     color: var(--fgcolor);
+    white-space: pre-line;
+    text-align: center;
   }
 `
 export class GameContent extends CustomHTMLElement {
@@ -73,9 +76,15 @@ export class GameContent extends CustomHTMLElement {
   #monitor = new ResizeObserver(
     ([
       {
-        contentBoxSize: [size],
+        contentBoxSize: [{ blockSize: rheight, inlineSize: rwidth }],
+        devicePixelContentBoxSize: [
+          {
+            blockSize: height = (rheight * devicePixelRatio) | 0,
+            inlineSize: width = (rwidth * devicePixelRatio) | 0,
+          } = {},
+        ] = [],
       },
-    ]) => this.#update(size)
+    ]) => this.#update(rwidth, rheight, width, height)
   );
 
   #resize = () => {
@@ -98,7 +107,7 @@ export class GameContent extends CustomHTMLElement {
     window.removeEventListener("resize", this.#resize);
   }
 
-  #update({ inlineSize, blockSize }: ResizeObserverSize) {
-    this.diag.innerText = `width: ${inlineSize} height: ${blockSize}`;
+  #update(rwidth: number, rheight: number, width: number, height: number) {
+    this.diag.innerText = `w: ${rwidth} h: ${rheight}\nw: ${width} h: ${height}`;
   }
 }
