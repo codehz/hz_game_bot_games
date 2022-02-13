@@ -9,7 +9,7 @@ export const auto_rotate = makeSystem(["auto_rotate", "rotate"], (view) => {
 export const clean_dying = makeSystem(["dying", "position"], function (view) {
   const list = [...view];
   list
-    .map((o) => this.get(o)!.die_spawn?.(o as any)!)
+    .map((o) => o.die_spawn?.(o as any)!)
     .filter((o) => !!o)
     .forEach((o) => this.add(o));
   list.forEach((o) => this.remove(o));
