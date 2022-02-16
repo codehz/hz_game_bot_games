@@ -200,7 +200,7 @@ export class GameContent extends CustomHTMLElement {
   on_frame(ctx: CanvasRenderingContext2D) {
     this.#rendering(ctx);
     this.#draw_overlay(ctx);
-    this.#debug_hitbox(ctx);
+    // this.#debug_hitbox(ctx);
     this.#draw_helth(ctx);
   }
 
