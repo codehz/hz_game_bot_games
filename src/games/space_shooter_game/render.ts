@@ -1,4 +1,4 @@
-import { makeSystem } from "./types.js";
+import { makePureSystem, makeSystem, OurEntity } from "./types.js";
 
 export const sprite = makeSystem(
   ["position", "atlas", "rotate", "scale", "opacity"],
@@ -41,3 +41,20 @@ export const debug_hitbox = makeSystem(
     ctx.restore();
   }
 );
+
+export const draw_health = makePureSystem(function (
+  ctx: CanvasRenderingContext2D,
+  player: OurEntity
+) {
+  const life = player.life! + "";
+  const text = `life:${life}`;
+  ctx.save();
+  ctx.strokeStyle = "#777";
+  ctx.lineWidth = 1;
+  ctx.fillStyle = "white";
+  ctx.font = "6px 'kenvector future'";
+  ctx.textBaseline = "hanging";
+  ctx.strokeText(text, 5, 5);
+  ctx.fillText(text, 5, 5);
+  ctx.restore();
+});

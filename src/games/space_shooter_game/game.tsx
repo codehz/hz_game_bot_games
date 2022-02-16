@@ -107,10 +107,10 @@ export class GameContent extends CustomHTMLElement {
   #rendering = rendering.sprite(this.#world, sheet);
   #debug_hitbox = rendering.debug_hitbox(this.#world);
   #life_view = this.#world.view("life");
+  #draw_helth = rendering.draw_health(this.#world, this.#player);
 
   #offset?: { x: number; y: number };
   #current!: { x: number; y: number };
-  // #ghost_target?: { x: number; y: number };
 
   #limit_player() {
     const { x, y } = this.#player.position!;
@@ -204,9 +204,7 @@ export class GameContent extends CustomHTMLElement {
   on_frame(ctx: CanvasRenderingContext2D) {
     this.#rendering(ctx);
     this.#debug_hitbox(ctx);
-
-    ctx.fillStyle = "white";
-    ctx.fillText("life: " + this.#player.life!, 0, 20);
+    this.#draw_helth(ctx);
   }
 
   #emit_altattack() {
