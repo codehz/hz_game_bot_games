@@ -108,7 +108,7 @@ export interface Components {
   damage: number;
   keep_alive: number;
   die_trigger: Trigger;
-  frame_trigger: Trigger[];
+  frame_trigger: Trigger;
   dying: string;
 }
 
@@ -143,7 +143,7 @@ export const defaults: Components = {
   damage: 0,
   keep_alive: 0,
   die_trigger: null as any,
-  frame_trigger: [],
+  frame_trigger: null as any,
   dying: "unknown",
 };
 
