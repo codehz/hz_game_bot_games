@@ -104,9 +104,9 @@ export class GameContent extends CustomHTMLElement {
   #clean_range = logic.clean_range(this.#world);
   #clean_dying = logic.clean_dying(this.#world);
   #auto_rotate = logic.auto_rotate(this.#world);
+  #clean_lowlife = logic.clean_lowlife(this.#world);
   #rendering = rendering.sprite(this.#world, sheet);
   #debug_hitbox = rendering.debug_hitbox(this.#world);
-  #life_view = this.#world.view("life");
   #draw_helth = rendering.draw_health(this.#world, this.#player);
 
   #offset?: { x: number; y: number };
@@ -164,13 +164,6 @@ export class GameContent extends CustomHTMLElement {
     );
   }
 
-  #clean_life() {
-    this.#life_view
-      .iter()
-      .filter((o) => o.life <= 0)
-      .forEach((o) => (this.#world.get(o)!.dying = "low life"));
-  }
-
   @attach("prepare", "#canvas")
   on_prepare() {
     if (this.#offset && this.#current && this.#world.resource.ghost_target) {
@@ -192,7 +185,7 @@ export class GameContent extends CustomHTMLElement {
     this.#keep_alive();
     this.#clean_range();
     this.#collision_detection();
-    this.#clean_life();
+    this.#clean_lowlife();
     this.#clean_dying();
     this.#spawn_bullets();
     this.#spawn_enemy();

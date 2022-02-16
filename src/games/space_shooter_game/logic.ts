@@ -53,6 +53,13 @@ export const clean_dying = makeSystem(["dying", "position"], function (view) {
   }
 });
 
+export const clean_lowlife = makeSystem(["life"], function (view) {
+  view
+    .iter()
+    .filter((o) => o.life <= 0)
+    .forEach((o) => (this.get(o)!.dying = "low life"));
+});
+
 export const clean_range = makeSystem(
   ["position", "velocity", "-tag_player"],
   function (view) {
