@@ -20,10 +20,10 @@ export class AtlasDescriptor {
   blit(ctx: CanvasRenderingContext2D, image: ImageBitmap, x = 0, y = 0) {
     ctx.drawImage(
       image,
-      this.x,
-      this.y,
-      this.width - 0.5,
-      this.height - 0.5,
+      this.x + 0.4,
+      this.y + 0.4,
+      this.width - 0.8,
+      this.height - 0.8,
       x,
       y,
       this.width,
