@@ -113,6 +113,14 @@ export class GameContent extends CustomHTMLElement {
   #offset?: { x: number; y: number };
   #current!: { x: number; y: number };
 
+  constructor() {
+    super();
+
+    this.#world.on("player_stopped", () => {
+      this.#ghost.opacity = 0;
+    });
+  }
+
   #enemy_timer = new Timer(100);
   #spawn_enemy() {
     if (!this.#enemy_timer.next()) return;
