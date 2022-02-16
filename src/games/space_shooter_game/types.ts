@@ -11,24 +11,70 @@ import type World from "/js/ecs.js";
 
 export type Team = "NATURAL" | "FRIENDLY" | "HOSTILE";
 
-export interface Spawner<
+export type TriggerResult =
+  | {
+      type: "spawn";
+      template: Partial<TaggableComponents>;
+    }
+  | {
+      type: "update";
+      template: Partial<TaggableComponents>;
+    }
+  | { type: "remove"; components: keyof Partial<TaggableComponents> };
+
+export interface Trigger<
   State = void,
-  Inputs extends Partial<Components> = PartialComponent<"position">
+  Inputs extends Partial<TaggableComponents> = PartialComponent<"position">
 > {
-  (this: State, source: Inputs): Partial<Components> | undefined;
+  (this: State, source: Inputs): Generator<TriggerResult>;
 }
 
-export function createSpawner<
+export namespace Trigger {
+  export function spawn(template: Partial<TaggableComponents>): TriggerResult {
+    return { type: "spawn", template };
+  }
+  export function update(template: Partial<TaggableComponents>): TriggerResult {
+    return { type: "update", template };
+  }
+  export function remove(
+    components: keyof Partial<TaggableComponents>
+  ): TriggerResult {
+    return { type: "remove", components };
+  }
+}
+
+export function withTriggerState<
   State,
   Input extends PartialComponent<"position"> = PartialComponent<"position">
->(state: State, f: Spawner<State, Input>): Spawner<void> {
-  return f.bind(state) as unknown as Spawner<void>;
+>(state: State, f: Trigger<State, Input>): Trigger<void> {
+  return f.bind(state) as unknown as Trigger<void>;
+}
+
+export function processTrigger(
+  world: OurWorld,
+  target: Partial<TaggableComponents>,
+  gen: Generator<TriggerResult> | undefined
+) {
+  if (!gen) return;
+  for (const item of gen) {
+    if (item.type == "spawn") {
+      world.defer_add(item.template);
+    } else if (item.type == "update") {
+      world.defer_update(target, item.template);
+    } else if (item.type == "remove") {
+      world.defer_remove_components(target, ...(item.components as any));
+    }
+  }
 }
 
 export interface Vec2 {
   x: number;
   y: number;
 }
+
+type PickByType<T, Value> = {
+  [P in keyof T as T[P] extends Value ? P : never]: T[P];
+};
 
 export interface Components {
   position: Vec2;
@@ -45,6 +91,12 @@ export interface Components {
   };
   event_player_set_overlay: number;
   player_overlay: number;
+  animate: {
+    target: Partial<PickByType<Components, number>>;
+    step: number;
+    on_end?: Trigger<void, Partial<TaggableComponents>>;
+  };
+  event_crash: string;
   rotate: number;
   auto_rotate: number;
   scale: number;
@@ -55,8 +107,8 @@ export interface Components {
   max_life: number;
   damage: number;
   keep_alive: number;
-  die_spawn: Spawner;
-  spawn_bullets: Spawner[];
+  die_trigger: Trigger;
+  frame_trigger: Trigger[];
   dying: string;
 }
 
@@ -75,6 +127,11 @@ export const defaults: Components = {
   },
   event_player_set_overlay: 1,
   player_overlay: 0,
+  animate: {
+    target: {},
+    step: 0,
+  },
+  event_crash: "crash",
   rotate: 0,
   auto_rotate: 0,
   scale: 0,
@@ -85,8 +142,8 @@ export const defaults: Components = {
   max_life: 0,
   damage: 0,
   keep_alive: 0,
-  die_spawn: null as any,
-  spawn_bullets: [],
+  die_trigger: null as any,
+  frame_trigger: [],
   dying: "unknown",
 };
 

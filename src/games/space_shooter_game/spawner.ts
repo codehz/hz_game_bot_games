@@ -1,7 +1,7 @@
 import {
-  createSpawner,
+  withTriggerState,
   PartialComponent,
-  Spawner,
+  Trigger,
   TaggedComponents,
   Vec2,
 } from "./types.js";
@@ -24,13 +24,15 @@ export function bullet<
     tag_bullet: true,
     opacity: 1,
     rotate: 0,
-    die_spawn: die_spawn
-      ? ({ position: { x, y } }) => ({
-          opacity: 1,
-          rotate: Math.random() * Math.PI * 2,
-          position: { x, y },
-          ...die_spawn,
-        })
+    die_trigger: die_spawn
+      ? function* ({ position: { x, y } }) {
+          yield Trigger.spawn({
+            opacity: 1,
+            rotate: Math.random() * Math.PI * 2,
+            position: { x, y },
+            ...die_spawn,
+          });
+        }
       : undefined,
     ...o,
   };
@@ -42,14 +44,14 @@ export function player<
   >
 >(
   player: T,
-  ...spawn_bullets: Spawner[]
+  ...frame_trigger: Trigger[]
 ): T &
   Pick<
-    TaggedComponents<"player">,
+    TaggedComponents<"player" | "crashable">,
     | "opacity"
     | "max_life"
     | "rotate"
-    | "spawn_bullets"
+    | "frame_trigger"
     | "team"
     | "damage"
     | "tag_player"
@@ -57,7 +59,8 @@ export function player<
   > {
   return {
     tag_player: true,
-    spawn_bullets,
+    tag_crashable: true,
+    frame_trigger,
     rotate: 0,
     opacity: 1,
     team: "FRIENDLY",
@@ -72,14 +75,16 @@ export function enemy<
   T extends PartialComponent<"position" | "hitbox" | "life" | "scale">
 >(
   enemy: T,
-  ...spawn_bullets: Spawner[]
+  ...frame_trigger: Trigger[]
 ): T &
   Pick<
-    TaggedComponents<"enemy">,
-    "opacity" | "max_life" | "rotate" | "spawn_bullets" | "team" | "damage"
+    TaggedComponents<"enemy" | "crashable">,
+    "opacity" | "max_life" | "rotate" | "frame_trigger" | "team" | "damage"
   > {
   return {
-    spawn_bullets,
+    tag_enemy: true,
+    tag_crashable: true,
+    frame_trigger,
     rotate: 0,
     opacity: 1,
     team: "HOSTILE",
@@ -108,8 +113,8 @@ export function ufo(
   | "team"
   | "hitbox"
   | "damage"
-  | "die_spawn"
-  | "spawn_bullets"
+  | "die_trigger"
+  | "frame_trigger"
 > {
   return {
     position: structuredClone(position),
@@ -124,24 +129,26 @@ export function ufo(
     team: "FRIENDLY",
     hitbox: { halfheight: 8, halfwidth: 8 },
     damage: 100,
-    die_spawn: ({ position: { x, y } }) => ({
-      position: { x, y },
-      rotate: Math.random() * Math.PI * 2,
-      scale: 0.5,
-      opacity: 1,
-      keep_alive: 50,
-      life: 50,
-      damage: 100,
-      team: "FRIENDLY",
-      hitbox: { halfheight: 10, halfwidth: 10 },
-      atlas: dieAtlas,
-    }),
-    spawn_bullets: [0, 1, 2, 3]
+    *die_trigger({ position: { x, y } }) {
+      yield Trigger.spawn({
+        position: { x, y },
+        rotate: Math.random() * Math.PI * 2,
+        scale: 0.5,
+        opacity: 1,
+        keep_alive: 50,
+        life: 50,
+        damage: 100,
+        team: "FRIENDLY",
+        hitbox: { halfheight: 10, halfwidth: 10 },
+        atlas: dieAtlas,
+      });
+    },
+    frame_trigger: [0, 1, 2, 3]
       .map((x) => (x * Math.PI) / 2)
       .map((deg) =>
-        createSpawner(
+        withTriggerState(
           new Timer(4),
-          function ({
+          function* ({
             position,
             velocity: { x: vx, y: vy },
             rotate,
@@ -156,7 +163,7 @@ export function ufo(
               y: vy + -Math.cos(rotate + deg) * 0.8,
             };
             const rot = Math.atan2(vel.x, -vel.y);
-            return {
+            yield Trigger.spawn({
               position: { ...position },
               velocity: vel,
               rotate: rot,
@@ -166,19 +173,21 @@ export function ufo(
               team: "FRIENDLY",
               hitbox: { halfwidth: 0.5, halfheight: 0.5 },
               damage: 20,
-              die_spawn: ({
+              *die_trigger({
                 position: { x, y },
               }: {
                 position: { x: number; y: number };
-              }) => ({
-                position: { x, y },
-                rotate: Math.random() * Math.PI * 2,
-                opacity: 1,
-                scale: 0.2,
-                atlas: bulletDieAtlas,
-                keep_alive: 20,
-              }),
-            };
+              }) {
+                yield Trigger.spawn({
+                  position: { x, y },
+                  rotate: Math.random() * Math.PI * 2,
+                  opacity: 1,
+                  scale: 0.2,
+                  atlas: bulletDieAtlas,
+                  keep_alive: 20,
+                });
+              },
+            });
           }
         )
       ),

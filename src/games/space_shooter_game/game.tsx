@@ -15,7 +15,7 @@ import GameCanvas from "/js/canvas.js";
 import loading from "./loader.js";
 import World from "/js/ecs.js";
 import { Timer } from "/js/utils.js";
-import { defaults, resource, createSpawner } from "./types.js";
+import { defaults, resource, withTriggerState, Trigger } from "./types.js";
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
 import * as spawner from "./spawner.js";
@@ -64,24 +64,26 @@ export class GameContent extends CustomHTMLElement {
         scale: 0.2,
         player_model: { color: "blue", shape: 1 },
       },
-      createSpawner(new Timer(20), function ({ position: { x, y } }) {
+      withTriggerState(new Timer(20), function* ({ position: { x, y } }) {
         if (!this.next()) return;
-        return spawner.bullet(
-          {
-            position: { x, y },
-            velocity: { x: 0, y: -2 },
-            scale: 0.2,
-            atlas: atlas.get("laserBlue01")!,
-            keep_alive: 100,
-            damage: 50,
-            team: "FRIENDLY",
-            hitbox: { halfwidth: 0.5, halfheight: 3 },
-          },
-          {
-            atlas: atlas.get("laserBlue08")!,
-            scale: 0.2,
-            keep_alive: 20,
-          }
+        yield Trigger.spawn(
+          spawner.bullet(
+            {
+              position: { x, y },
+              velocity: { x: 0, y: -2 },
+              scale: 0.2,
+              atlas: atlas.get("laserBlue01")!,
+              keep_alive: 100,
+              damage: 50,
+              team: "FRIENDLY",
+              hitbox: { halfwidth: 0.5, halfheight: 3 },
+            },
+            {
+              atlas: atlas.get("laserBlue08")!,
+              scale: 0.2,
+              keep_alive: 20,
+            }
+          )
         );
       })
     )
@@ -99,6 +101,8 @@ export class GameContent extends CustomHTMLElement {
   #attach_player_overlay = logic.attach_player_overlay(this.#world);
   #set_player_overlay_based_on_health =
     logic.set_player_overlay_based_on_health(this.#world);
+  #play_animate = logic.play_animate(this.#world);
+  #start_crash_animate = logic.start_crash_animate(this.#world);
   #limit_player = logic.limit_player(this.#world, this.#player);
   #move_player = logic.move_player(this.#world, this.#player, this.#ghost);
   #move_ghost = logic.move_ghost(this.#world, this.#ghost);
@@ -139,25 +143,27 @@ export class GameContent extends CustomHTMLElement {
           scale: 0.2,
           atlas: atlas.get("cockpitBlue_0")!,
         },
-        createSpawner(new Timer(40), function ({ position: { x, y } }) {
+        withTriggerState(new Timer(40), function* ({ position: { x, y } }) {
           if (!this.next()) return;
-          return spawner.bullet(
-            {
-              position: { x, y },
-              velocity: { x: 0, y: 1 },
-              rotate: Math.PI,
-              scale: 0.2,
-              atlas: atlas.get("laserRed01")!,
-              keep_alive: 500,
-              team: "HOSTILE",
-              hitbox: { halfwidth: 0.5, halfheight: 3 },
-              damage: 10,
-            },
-            {
-              scale: 0.2,
-              atlas: atlas.get("laserRed08")!,
-              keep_alive: 20,
-            }
+          yield Trigger.spawn(
+            spawner.bullet(
+              {
+                position: { x, y },
+                velocity: { x: 0, y: 1 },
+                rotate: Math.PI,
+                scale: 0.2,
+                atlas: atlas.get("laserRed01")!,
+                keep_alive: 500,
+                team: "HOSTILE",
+                hitbox: { halfwidth: 0.5, halfheight: 3 },
+                damage: 10,
+              },
+              {
+                scale: 0.2,
+                atlas: atlas.get("laserRed08")!,
+                keep_alive: 20,
+              }
+            )
           );
         })
       )
@@ -180,6 +186,8 @@ export class GameContent extends CustomHTMLElement {
     this.#attach_player_atlas(atlas);
     this.#attach_player_overlay(atlas);
     this.#set_player_overlay_based_on_health();
+    this.#play_animate();
+    this.#start_crash_animate();
     this.#auto_rotate();
     this.#move_ghost();
     this.#move_player();

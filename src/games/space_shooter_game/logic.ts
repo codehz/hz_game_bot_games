@@ -1,4 +1,12 @@
-import { makePureSystem, makeSystem, OurEntity, OurWorld } from "./types.js";
+import {
+  Components,
+  makePureSystem,
+  makeSystem,
+  OurEntity,
+  OurWorld,
+  processTrigger,
+  Trigger,
+} from "./types.js";
 import { TextureAtlas } from "/js/atlas.js";
 
 export const attach_player_atlas = makeSystem(
@@ -44,6 +52,57 @@ export const set_player_overlay_based_on_health = makeSystem(
       level = level < 0 ? 0 : level > 3 ? 3 : level;
       if (player_overlay == level) return;
       this.defer_add_component(obj, "event_player_set_overlay", level);
+    }
+  }
+);
+
+export const play_animate = makeSystem(["animate"], function (view) {
+  for (const obj of view) {
+    const { target, step, on_end } = obj.animate;
+    if (step <= 0) {
+      Object.assign(obj, target);
+      this.defer_remove_component(obj, "animate");
+      processTrigger(this, obj, on_end?.(obj));
+      continue;
+    }
+    obj.animate.step--;
+    for (const key of Object.keys(target)) {
+      // @ts-ignore
+      const orig = obj[key] as number;
+      console.assert(typeof orig == "number");
+      // @ts-ignore
+      const tgtv = target[key] as number;
+      const diff = tgtv - orig;
+      const chge = diff - (diff * step) / (step + 1);
+      // @ts-ignore
+      obj[key] += chge;
+    }
+  }
+});
+
+export const start_crash_animate = makeSystem(
+  ["dying", "tag_crashable"],
+  function (view) {
+    for (const obj of view) {
+      const { dying } = obj;
+      this.defer_remove_components(
+        obj,
+        "dying",
+        "tag_crashable",
+        "hitbox",
+        "frame_trigger"
+      );
+      this.defer_add_component(obj, "tag_crashing", true);
+      this.defer_add_component(obj, "animate", {
+        target: {
+          scale: 0,
+          rotate: 10,
+        },
+        step: 50,
+        *on_end() {
+          yield Trigger.update({ dying });
+        },
+      });
     }
   }
 );
@@ -108,17 +167,17 @@ export const auto_rotate = makeSystem(["auto_rotate", "rotate"], (view) => {
   }
 });
 
-export const clean_dying = makeSystem(["dying", "position"], function (view) {
-  for (const item of view) {
-    this.defer_remove(item);
-    const spawnned = item.die_spawn?.(item);
-    if (spawnned) {
-      this.defer_add(spawnned);
+export const clean_dying = makeSystem(
+  ["dying", "position", "-tag_crashable"],
+  function (view) {
+    for (const item of view) {
+      this.defer_remove(item);
+      processTrigger(this, item, item.die_trigger?.(item));
     }
   }
-});
+);
 
-export const clean_lowlife = makeSystem(["life"], function (view) {
+export const clean_lowlife = makeSystem(["life", "-tag_crashing"], function (view) {
   view
     .iter()
     .filter((o) => o.life <= 0)
@@ -142,14 +201,14 @@ export const clean_range = makeSystem(
 );
 
 export const spawn_bullets = makeSystem(
-  ["position", "velocity", "spawn_bullets"],
+  ["position", "velocity", "frame_trigger"],
   function (view) {
     view
       .iter()
-      .flatMap((o) =>
-        o.spawn_bullets.map((info) => info(o)!).filter((x) => x != null)
+      .flatMap((self) =>
+        self.frame_trigger.map((info) => ({ self, res: info(self) }))
       )
-      .forEach((item) => this.defer_add(item));
+      .forEach(({ self, res }) => processTrigger(this, self, res));
   }
 );
 

@@ -174,7 +174,21 @@ export default class World<
     return this.#entities.get(obj);
   }
 
-  defer_add_component<K extends keyof C>(obj: object, key: K, value: C[K]) {
+  defer_add_component<K extends keyof C>(
+    obj: object,
+    key: `tag_${string}`,
+    value: true
+  ): void;
+  defer_add_component<K extends keyof C>(
+    obj: object,
+    key: K,
+    value: C[K]
+  ): void
+  defer_add_component<K extends string & keyof C>(
+    obj: object,
+    key: K | `tag_${string}`,
+    value: C[K]
+  ): void {
     if (key in obj) (obj as any)[key] = value;
     else {
       const cache = this.get(obj)!;
@@ -183,11 +197,32 @@ export default class World<
     }
   }
 
-  defer_remove_component(obj: object, key: keyof C) {
+  defer_update(obj: object, value: Partial<C> & Taggable) {
+    const cache = this.get(obj)!;
+    console.assert(cache != null);
+    this.#deferred.push(() => Object.assign(cache, value));
+  }
+
+  defer_remove_component(
+    obj: object,
+    key: (string & keyof C) | `tag_${string}`
+  ) {
     if (key in obj) {
       const cache = this.get(obj)!;
       console.assert(cache != null);
       this.#deferred.push(() => delete cache[key]);
+    }
+  }
+
+  defer_remove_components(
+    obj: object,
+    ...keys: ((string & keyof C) | `tag_${string}`)[]
+  ) {
+    keys = keys.filter((key) => key in obj);
+    if (keys.length > 0) {
+      const cache = this.get(obj)!;
+      console.assert(cache != null);
+      this.#deferred.push(() => keys.forEach((key) => delete cache[key]));
     }
   }
 
