@@ -12,7 +12,7 @@ export const limit_player = makePureSystem(function (
   }
   if (y < 10) {
     player.velocity!.y += 1;
-  } else if (y > this.canvas.height - 10) {
+  } else if (y > this.resource.height_limit - 10) {
     player.velocity!.y -= 1;
   }
 });

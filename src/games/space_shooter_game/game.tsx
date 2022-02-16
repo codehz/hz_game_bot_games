@@ -95,7 +95,7 @@ export class GameContent extends CustomHTMLElement {
     atlas: atlas.get("playerShip1_blue")!,
   });
 
-  #limit_player = logic.limit_player(this.world, this.#player);
+  #limit_player = logic.limit_player(this.#world, this.#player);
   #move_player = logic.move_player(this.#world, this.#player, this.#ghost);
   #move_ghost = logic.move_ghost(this.#world, this.#ghost);
   #moving = logic.moving(this.#world);
