@@ -98,7 +98,8 @@ export const draw_health = makePureSystem(function (
   ctx: CanvasRenderingContext2D,
   player: OurEntity
 ) {
-  const life = player.life!;
+  let life = player.life!;
+  life = life < 0 ? 0 : life;
   const max_life = player.max_life!;
   ctx.save();
   ctx.strokeStyle = "#fff";
