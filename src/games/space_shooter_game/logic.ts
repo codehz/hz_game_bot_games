@@ -1,4 +1,41 @@
-import { makeSystem, OurWorld } from "./types.js";
+import { makePureSystem, makeSystem, OurEntity, OurWorld } from "./types.js";
+
+export const move_player = makePureSystem(function (
+  _: void,
+  player: OurEntity,
+  ghost: OurEntity
+) {
+  const [gdx, gdy] = [
+    ghost.position!.x - player.position!.x,
+    ghost.position!.y - player.position!.y,
+  ];
+  const glen = (gdx ** 2 + gdy ** 2) ** 0.5;
+  if (glen > 0) {
+    const maxspeed = glen > 10 ? 10 : glen;
+    const df = glen < 50 ? 0.5 + (glen / 50) * 4.5 : 5;
+    const x = player.velocity!.x + (gdx / glen) * df;
+    const y = player.velocity!.y + (gdy / glen) * df;
+    const speed = (x ** 2 + y ** 2) ** 0.5;
+    const base = speed > maxspeed ? maxspeed / speed : 0.9;
+    player.velocity = {
+      x: x * base,
+      y: y * base,
+    };
+  } else {
+    this.emit("player_stopped");
+  }
+});
+
+export const move_ghost = makePureSystem(function (_: void, ghost: OurEntity) {
+  if (this.resource.ghost_target) {
+    let { x, y } = this.resource.ghost_target;
+    ghost.position!.x = Math.min(Math.max(x, 10), 90);
+    ghost.position!.y = Math.min(
+      Math.max(y, 10),
+      this.resource.height_limit - 10
+    );
+  }
+});
 
 export const auto_rotate = makeSystem(["auto_rotate", "rotate"], (view) => {
   for (const o of view) {
@@ -18,7 +55,7 @@ export const clean_dying = makeSystem(["dying", "position"], function (view) {
 
 export const clean_range = makeSystem(
   ["position", "velocity", "-tag_player"],
-  function (view, range: number) {
+  function (view) {
     view
       .iter()
       .filter(
@@ -26,7 +63,7 @@ export const clean_range = makeSystem(
           (x < -10 && vx <= 0) ||
           (x > 110 && vx >= 0) ||
           (y < -10 && vy <= 0) ||
-          (y >= range + 10 && vy > 0)
+          (y >= this.resource.height_limit + 10 && vy > 0)
       )
       .forEach((o) => this.defer_remove(o));
   }

@@ -71,19 +71,37 @@ export const defaults: Components = {
   dying: "unknown",
 };
 
+export type Resource = {
+  height_limit: number;
+  ghost_target?: Vec2;
+};
+
+export const resource: Resource = {
+  height_limit: 100,
+};
+
 export type TaggableComponents<S extends string = string> = Components &
   Taggable<S>;
 
-export type TaggedComponents<S extends string = string> = Components & HasTag<S>;
+export type TaggedComponents<S extends string = string> = Components &
+  HasTag<S>;
 
 export type OurEntity = EntityProxy<Components>;
 
-export type OurWorld = World<Components>;
+export type OurWorld = World<Components, Resource>;
 
 export type SystemBuilder<
   I = void,
   P extends any[] = []
-> = GenericSystemBuilder<Components, I, P>;
+> = GenericSystemBuilder<Components, Resource, I, P>;
+
+export function makePureSystem<I = void, P extends any[] = []>(
+  f: (this: World<Components, Resource>, input: I, ...params: P) => void
+): SystemBuilder<I, P> {
+  return (world, ...params) =>
+    (input) =>
+      f.call(world, input, ...params);
+}
 
 export function makeSystem<
   R extends ViewKey<Components>,
@@ -92,7 +110,7 @@ export function makeSystem<
 >(
   interests: R[],
   f: (
-    this: World<Components>,
+    this: World<Components, Resource>,
     view: View<Components, R>,
     input: I,
     ...params: P

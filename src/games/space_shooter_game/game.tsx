@@ -15,7 +15,7 @@ import GameCanvas from "/js/canvas.js";
 import loading from "./loader.js";
 import World from "/js/ecs.js";
 import { Timer } from "/js/utils.js";
-import { defaults, createBulletSpawner } from "./types.js";
+import { defaults, resource, createBulletSpawner } from "./types.js";
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
 import * as spawner from "./spawner.js";
@@ -52,18 +52,7 @@ export class GameContent extends CustomHTMLElement {
   @id("canvas")
   canvas!: GameCanvas;
 
-  #world = new World(defaults);
-
-  #moving = logic.moving(this.#world);
-  #keep_alive = logic.keep_alive(this.#world);
-  #collision_detection = logic.collision_detection(this.#world);
-  #spawn_bullets = logic.spawn_bullets(this.#world);
-  #clean_range = logic.clean_range(this.#world);
-  #clean_dying = logic.clean_dying(this.#world);
-  #auto_rotate = logic.auto_rotate(this.#world);
-  #rendering = rendering.sprite(this.#world, sheet);
-  #debug_hitbox = rendering.debug_hitbox(this.#world);
-  #life_view = this.#world.view("life");
+  #world = new World(defaults, resource);
 
   #player = this.#world.add(
     spawner.player(
@@ -106,48 +95,22 @@ export class GameContent extends CustomHTMLElement {
     atlas: atlas.get("playerShip1_blue")!,
   });
 
+  #move_player = logic.move_player(this.#world, this.#player, this.#ghost);
+  #move_ghost = logic.move_ghost(this.#world, this.#ghost);
+  #moving = logic.moving(this.#world);
+  #keep_alive = logic.keep_alive(this.#world);
+  #collision_detection = logic.collision_detection(this.#world);
+  #spawn_bullets = logic.spawn_bullets(this.#world);
+  #clean_range = logic.clean_range(this.#world);
+  #clean_dying = logic.clean_dying(this.#world);
+  #auto_rotate = logic.auto_rotate(this.#world);
+  #rendering = rendering.sprite(this.#world, sheet);
+  #debug_hitbox = rendering.debug_hitbox(this.#world);
+  #life_view = this.#world.view("life");
+
   #offset?: { x: number; y: number };
   #current!: { x: number; y: number };
-  #ghost_target?: { x: number; y: number };
-  #maxspeed = 10;
-
-  #limit_player_speed() {
-    const { x, y } = this.#player.velocity!;
-    const speed = (x ** 2 + y ** 2) ** 0.5;
-    const base = speed > this.#maxspeed ? this.#maxspeed / speed : 0.9;
-    this.#player.velocity = {
-      x: x * base,
-      y: y * base,
-    };
-  }
-
-  #move_ghost() {
-    if (this.#ghost_target) {
-      let { x, y } = this.#ghost_target;
-      this.#ghost.position!.x = Math.min(Math.max(x, 10), 90);
-      this.#ghost.position!.y = Math.min(
-        Math.max(y, 10),
-        this.canvas.height - 10
-      );
-    }
-  }
-
-  #move_player() {
-    const [gdx, gdy] = [
-      this.#ghost.position!.x - this.#player.position!.x,
-      this.#ghost.position!.y - this.#player.position!.y,
-    ];
-    const glen = (gdx ** 2 + gdy ** 2) ** 0.5;
-    if (glen > 0) {
-      this.#maxspeed = glen > 10 ? 10 : glen;
-      const df = glen < 50 ? 0.5 + (glen / 50) * 4.5 : 5;
-      this.#player.velocity!.x += (gdx / glen) * df;
-      this.#player.velocity!.y += (gdy / glen) * df;
-      this.#limit_player_speed();
-    } else if (this.#offset == null) {
-      this.#ghost.opacity = 0;
-    }
-  }
+  // #ghost_target?: { x: number; y: number };
 
   #limit_player() {
     const { x, y } = this.#player.position!;
@@ -210,15 +173,16 @@ export class GameContent extends CustomHTMLElement {
 
   @attach("prepare", "#canvas")
   on_prepare() {
-    if (this.#offset && this.#current && this.#ghost_target) {
+    if (this.#offset && this.#current && this.#world.resource.ghost_target) {
       const [dx, dy] = [
         this.#current.x - this.#offset.x,
         this.#current.y - this.#offset.y,
       ];
       this.#offset = this.#current;
-      this.#ghost_target.x += dx;
-      this.#ghost_target.y += dy;
+      this.#world.resource.ghost_target.x += dx;
+      this.#world.resource.ghost_target.y += dy;
     }
+    this.#world.resource.height_limit = this.canvas.height;
 
     this.#auto_rotate();
     this.#move_ghost();
@@ -226,7 +190,7 @@ export class GameContent extends CustomHTMLElement {
     this.#limit_player();
     this.#moving();
     this.#keep_alive();
-    this.#clean_range(this.canvas.height);
+    this.#clean_range();
     this.#collision_detection();
     this.#clean_life();
     this.#clean_dying();
@@ -338,7 +302,7 @@ export class GameContent extends CustomHTMLElement {
     this.#current = this.#offset = { x, y };
     this.#ghost.position = { ...this.#player.position! };
     this.#ghost.opacity = 0.2;
-    this.#ghost_target = { ...this.#player.position! };
+    this.#world.resource.ghost_target = { ...this.#player.position! };
     // TODO: Start game
   }
 

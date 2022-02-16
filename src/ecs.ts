@@ -85,8 +85,12 @@ export type HasTag<S extends string = string> = {
   [key in `tag_${S}`]: true;
 };
 
-export default class World<C extends Record<string, any>> extends Emitter {
+export default class World<
+  C extends Record<string, any>,
+  R extends Record<string, any>
+> extends Emitter {
   #template: C;
+  #resource: R;
   #entities: Map<object, EntityProxy<C>> = new Map();
   #views: ViewLike[] = [];
   #view_index: {
@@ -94,9 +98,14 @@ export default class World<C extends Record<string, any>> extends Emitter {
   } = {};
   #deferred: Function[] = [];
 
-  constructor(template: C) {
+  constructor(template: C, resource: R) {
     super();
     this.#template = template;
+    this.#resource = resource;
+  }
+
+  get resource() {
+    return this.#resource;
   }
 
   #index(key: keyof C | `tag_${string}`): ViewLike[] {
@@ -213,7 +222,7 @@ export default class World<C extends Record<string, any>> extends Emitter {
 
 export type EntityProxy<C> = Partial<C> & AutoProp<C> & Taggable;
 export type System<I = void> = (input: I) => void;
-export type GenericSystemBuilder<C, I = void, P extends any[] = []> = (
-  world: World<C>,
+export type GenericSystemBuilder<C, R, I = void, P extends any[] = []> = (
+  world: World<C, R>,
   ...params: P
 ) => System<I>;
