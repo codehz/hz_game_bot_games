@@ -35,6 +35,16 @@ export interface Components {
   ghost_position: Vec2;
   velocity: Vec2;
   atlas: AtlasDescriptor;
+  player_model: {
+    shape: 1 | 2 | 3;
+    color: "blue" | "green" | "orange";
+  };
+  overlay: {
+    atlas: AtlasDescriptor;
+    mode: GlobalCompositeOperation;
+  };
+  event_player_set_overlay: number;
+  player_overlay: number;
   rotate: number;
   auto_rotate: number;
   scale: number;
@@ -58,6 +68,13 @@ export const defaults: Components = {
   ghost_position: { x: 0, y: 0 },
   velocity: { x: 0, y: 0 },
   atlas: null as any,
+  overlay: null as any,
+  player_model: {
+    color: "green",
+    shape: 1,
+  },
+  event_player_set_overlay: 1,
+  player_overlay: 0,
   rotate: 0,
   auto_rotate: 0,
   scale: 0,

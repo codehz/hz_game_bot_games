@@ -23,6 +23,28 @@ export const sprite = makeSystem(
   }
 );
 
+export const overlay = makeSystem(
+  ["position", "overlay", "rotate", "scale"],
+  function (view, ctx: CanvasRenderingContext2D, image: ImageBitmap) {
+    for (const {
+      overlay: { atlas, mode },
+      position: { x, y },
+      rotate,
+      scale,
+    } of view) {
+      const { width, height } = atlas;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotate);
+      ctx.scale(scale, scale);
+      ctx.translate(-width / 2, -height / 2);
+      ctx.globalCompositeOperation = mode;
+      atlas.blit(ctx, image);
+      ctx.restore();
+    }
+  }
+);
+
 export const debug_hitbox = makeSystem(
   ["position", "hitbox", "team"],
   function (view, ctx: CanvasRenderingContext2D) {

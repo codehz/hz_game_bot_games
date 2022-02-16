@@ -1,4 +1,52 @@
 import { makePureSystem, makeSystem, OurEntity, OurWorld } from "./types.js";
+import { TextureAtlas } from "/js/atlas.js";
+
+export const attach_player_atlas = makeSystem(
+  ["-atlas", "player_model"],
+  function (view, atlas: TextureAtlas) {
+    for (const obj of view) {
+      const { shape, color } = obj.player_model;
+      this.defer_add_component(
+        obj,
+        "atlas",
+        atlas.get(`playerShip${shape}_${color}`)!
+      );
+    }
+  }
+);
+
+export const attach_player_overlay = makeSystem(
+  ["event_player_set_overlay", "player_model"],
+  function (view, atlas: TextureAtlas) {
+    for (const obj of view) {
+      const damage = obj.event_player_set_overlay;
+      this.defer_add_component(obj, "player_overlay", damage);
+      if (damage === 0) {
+        this.defer_remove_component(obj, "overlay");
+        continue;
+      }
+      const { shape } = obj.player_model;
+      this.defer_add_component(obj, "overlay", {
+        atlas: atlas.get(`playerShip${shape}_damage${damage}`)!,
+        mode: "darken",
+      });
+      this.defer_remove_component(obj, "event_player_set_overlay");
+    }
+  }
+);
+
+export const set_player_overlay_based_on_health = makeSystem(
+  ["life", "max_life", "player_overlay"],
+  function (view) {
+    for (const obj of view) {
+      const { life, max_life, player_overlay } = obj;
+      let level = 3 - Math.floor((life / max_life) * 3);
+      level = level < 0 ? 0 : level > 3 ? 3 : level;
+      if (player_overlay == level) return;
+      this.defer_add_component(obj, "event_player_set_overlay", level);
+    }
+  }
+);
 
 export const limit_player = makePureSystem(function (
   _: void,
@@ -74,7 +122,7 @@ export const clean_lowlife = makeSystem(["life"], function (view) {
   view
     .iter()
     .filter((o) => o.life <= 0)
-    .forEach((o) => (this.get(o)!.dying = "low life"));
+    .forEach((o) => this.defer_add_component(o, "dying", "low life"));
 });
 
 export const clean_range = makeSystem(
@@ -137,7 +185,7 @@ export const keep_alive = makeSystem(["keep_alive"], function (view) {
   view
     .iter()
     .filter((obj) => obj.keep_alive-- <= 0)
-    .forEach((obj) => (this.get(obj)!.dying = "timeout"));
+    .forEach((obj) => this.defer_add_component(obj, "dying", "timeout"));
 });
 
 export const moving = makeSystem(["position", "velocity"], (view) => {

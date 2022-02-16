@@ -37,7 +37,9 @@ export function bullet<
 }
 
 export function player<
-  T extends PartialComponent<"position" | "hitbox" | "life" | "scale">
+  T extends PartialComponent<
+    "position" | "hitbox" | "life" | "scale" | "player_model"
+  >
 >(
   player: T,
   ...spawn_bullets: Spawner[]
@@ -51,6 +53,7 @@ export function player<
     | "team"
     | "damage"
     | "tag_player"
+    | "player_overlay"
   > {
   return {
     tag_player: true,
@@ -60,6 +63,7 @@ export function player<
     team: "FRIENDLY",
     damage: player.life,
     max_life: player.life,
+    player_overlay: 0,
     ...player,
   };
 }

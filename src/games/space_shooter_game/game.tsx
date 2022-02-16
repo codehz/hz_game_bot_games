@@ -62,7 +62,7 @@ export class GameContent extends CustomHTMLElement {
         position: { x: 50, y: 100 },
         velocity: { x: 0, y: 0 },
         scale: 0.2,
-        atlas: atlas.get("playerShip1_blue")!,
+        player_model: { color: "blue", shape: 1 },
       },
       createBulletSpawner(new Timer(20), function ({ position: { x, y } }) {
         if (!this.next()) return;
@@ -95,6 +95,10 @@ export class GameContent extends CustomHTMLElement {
     atlas: atlas.get("playerShip1_blue")!,
   });
 
+  #attach_player_atlas = logic.attach_player_atlas(this.#world);
+  #attach_player_overlay = logic.attach_player_overlay(this.#world);
+  #set_player_overlay_based_on_health =
+    logic.set_player_overlay_based_on_health(this.#world);
   #limit_player = logic.limit_player(this.#world, this.#player);
   #move_player = logic.move_player(this.#world, this.#player, this.#ghost);
   #move_ghost = logic.move_ghost(this.#world, this.#ghost);
@@ -107,6 +111,7 @@ export class GameContent extends CustomHTMLElement {
   #auto_rotate = logic.auto_rotate(this.#world);
   #clean_lowlife = logic.clean_lowlife(this.#world);
   #rendering = rendering.sprite(this.#world, sheet);
+  #draw_overlay = rendering.overlay(this.#world, sheet);
   #debug_hitbox = rendering.debug_hitbox(this.#world);
   #draw_helth = rendering.draw_health(this.#world, this.#player);
 
@@ -172,6 +177,9 @@ export class GameContent extends CustomHTMLElement {
     }
     this.#world.resource.height_limit = this.canvas.height;
 
+    this.#attach_player_atlas(atlas);
+    this.#attach_player_overlay(atlas);
+    this.#set_player_overlay_based_on_health();
     this.#auto_rotate();
     this.#move_ghost();
     this.#move_player();
@@ -191,6 +199,7 @@ export class GameContent extends CustomHTMLElement {
   @attach("frame", "#canvas")
   on_frame(ctx: CanvasRenderingContext2D) {
     this.#rendering(ctx);
+    this.#draw_overlay(ctx);
     this.#debug_hitbox(ctx);
     this.#draw_helth(ctx);
   }
