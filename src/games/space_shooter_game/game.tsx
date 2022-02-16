@@ -208,78 +208,15 @@ export class GameContent extends CustomHTMLElement {
   }
 
   #emit_altattack() {
-    this.#world.add({
-      position: { ...this.#player.position! },
-      velocity: { x: 0, y: -0.5 },
-      rotate: 0,
-      auto_rotate: 0.05,
-      opacity: 1,
-      scale: 0.2,
-      atlas: atlas.get("ufoBlue")!,
-      keep_alive: 150,
-      life: 500,
-      team: "FRIENDLY",
-      hitbox: { halfheight: 8, halfwidth: 8 },
-      damage: 100,
-      die_spawn: ({ position: { x, y } }) => ({
-        position: { x, y },
-        rotate: Math.random() * Math.PI * 2,
-        scale: 0.5,
-        opacity: 1,
-        keep_alive: 50,
-        life: 50,
-        damage: 100,
-        team: "FRIENDLY",
-        hitbox: { halfheight: 10, halfwidth: 10 },
-        atlas: atlas.get("laserBlue08")!,
-      }),
-      spawn_bullets: [0, 1, 2, 3]
-        .map((x) => (x * Math.PI) / 2)
-        .map((deg) =>
-          createBulletSpawner(
-            new Timer(4),
-            function ({
-              position,
-              velocity: { x: vx, y: vy },
-              rotate,
-            }: {
-              position: { x: number; y: number };
-              velocity: { x: number; y: number };
-              rotate: number;
-            }) {
-              if (!this.next()) return;
-              const vel = {
-                x: vx + Math.sin(rotate + deg) * 0.8,
-                y: vy + -Math.cos(rotate + deg) * 0.8,
-              };
-              const rot = Math.atan2(vel.x, -vel.y);
-              return {
-                position: { ...position },
-                velocity: vel,
-                rotate: rot,
-                opacity: 1,
-                scale: 0.15,
-                atlas: atlas.get("laserBlue07")!,
-                team: "FRIENDLY",
-                hitbox: { halfwidth: 0.5, halfheight: 0.5 },
-                damage: 20,
-                die_spawn: ({
-                  position: { x, y },
-                }: {
-                  position: { x: number; y: number };
-                }) => ({
-                  position: { x, y },
-                  rotate: Math.random() * Math.PI * 2,
-                  opacity: 1,
-                  scale: 0.2,
-                  atlas: atlas.get("laserBlue08")!,
-                  keep_alive: 20,
-                }),
-              };
-            }
-          )
-        ),
-    });
+    this.#world.add(
+      spawner.ufo(
+        this.#player.position!,
+        atlas.get("ufoBlue")!,
+        atlas.get("laserBlue08")!,
+        atlas.get("laserBlue07")!,
+        atlas.get("laserBlue08")!
+      )
+    );
   }
 
   @listen_closest("keypress", "body")
