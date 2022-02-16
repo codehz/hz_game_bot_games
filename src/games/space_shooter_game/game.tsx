@@ -248,13 +248,15 @@ export class GameContent extends CustomHTMLElement {
               rotate: number;
             }) {
               if (!this.next()) return;
+              const vel = {
+                x: vx + Math.sin(rotate + deg) * 0.8,
+                y: vy + -Math.cos(rotate + deg) * 0.8,
+              };
+              const rot = Math.atan2(vel.x, -vel.y);
               return {
                 position: { ...position },
-                velocity: {
-                  x: vx + Math.sin(rotate + deg) * 0.8,
-                  y: vy + -Math.cos(rotate + deg) * 0.8,
-                },
-                rotate: rotate + deg,
+                velocity: vel,
+                rotate: rot,
                 opacity: 1,
                 scale: 0.15,
                 atlas: atlas.get("laserBlue07")!,
