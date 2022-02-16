@@ -42,19 +42,54 @@ export const debug_hitbox = makeSystem(
   }
 );
 
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  if (w < 2 * r) r = w / 2;
+  if (h < 2 * r) r = h / 2;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  return ctx;
+}
+
+function outlineText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number
+) {
+  ctx.strokeText(text, x, y);
+  ctx.fillText(text, x, y);
+}
+
 export const draw_health = makePureSystem(function (
   ctx: CanvasRenderingContext2D,
   player: OurEntity
 ) {
-  const life = player.life! + "";
-  const text = `life:${life}`;
+  const life = player.life!;
+  const max_life = player.max_life!;
   ctx.save();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 0.5;
+  roundedRect(ctx, 15, 5, 40, 4, 1).stroke();
+  ctx.fillStyle = "#fff";
+  roundedRect(ctx, 15.5, 5.5, (life / max_life) * 39, 3, 0.5).fill();
   ctx.strokeStyle = "#777";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 0.8;
   ctx.fillStyle = "white";
-  ctx.font = "6px 'kenvector future'";
+  ctx.font = "4px 'kenvector future'";
   ctx.textBaseline = "hanging";
-  ctx.strokeText(text, 5, 5);
-  ctx.fillText(text, 5, 5);
+  outlineText(ctx, "HP:", 5, 5);
+  outlineText(ctx, "" + life, 57, 5);
   ctx.restore();
 });

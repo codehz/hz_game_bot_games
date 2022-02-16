@@ -36,7 +36,13 @@ export function player<
 ): T &
   Pick<
     TaggedComponents<"player">,
-    "opacity" | "rotate" | "spawn_bullets" | "team" | "damage" | "tag_player"
+    | "opacity"
+    | "max_life"
+    | "rotate"
+    | "spawn_bullets"
+    | "team"
+    | "damage"
+    | "tag_player"
   > {
   return {
     tag_player: true,
@@ -45,6 +51,7 @@ export function player<
     opacity: 1,
     team: "FRIENDLY",
     damage: player.life,
+    max_life: player.life,
     ...player,
   };
 }
@@ -52,19 +59,20 @@ export function player<
 export function enemy<
   T extends PartialComponent<"position" | "hitbox" | "life" | "scale">
 >(
-  player: T,
+  enemy: T,
   ...spawn_bullets: Spawner[]
 ): T &
   Pick<
     TaggedComponents<"enemy">,
-    "opacity" | "rotate" | "spawn_bullets" | "team" | "damage"
+    "opacity" | "max_life" | "rotate" | "spawn_bullets" | "team" | "damage"
   > {
   return {
     spawn_bullets,
     rotate: 0,
     opacity: 1,
     team: "HOSTILE",
-    damage: player.life,
-    ...player,
+    damage: enemy.life,
+    max_life: enemy.life,
+    ...enemy,
   };
 }

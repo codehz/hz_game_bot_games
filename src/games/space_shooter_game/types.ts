@@ -42,6 +42,7 @@ export interface Components {
   team: Team;
   hitbox: { halfwidth: number; halfheight: number };
   life: number;
+  max_life: number;
   damage: number;
   keep_alive: number;
   die_spawn: Spawner;
@@ -64,6 +65,7 @@ export const defaults: Components = {
   team: "NATURAL",
   hitbox: { halfwidth: 0, halfheight: 0 },
   life: 0,
+  max_life: 0,
   damage: 0,
   keep_alive: 0,
   die_spawn: null as any,
