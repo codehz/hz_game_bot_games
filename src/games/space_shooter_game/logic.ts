@@ -1,5 +1,22 @@
 import { makePureSystem, makeSystem, OurEntity, OurWorld } from "./types.js";
 
+export const limit_player = makePureSystem(function (
+  _: void,
+  player: OurEntity
+) {
+  const { x, y } = player.position!;
+  if (x < 10) {
+    player.velocity!.x += 1;
+  } else if (x > 90) {
+    player.velocity!.x -= 1;
+  }
+  if (y < 10) {
+    player.velocity!.y += 1;
+  } else if (y > this.canvas.height - 10) {
+    player.velocity!.y -= 1;
+  }
+});
+
 export const move_player = makePureSystem(function (
   _: void,
   player: OurEntity,

@@ -95,6 +95,7 @@ export class GameContent extends CustomHTMLElement {
     atlas: atlas.get("playerShip1_blue")!,
   });
 
+  #limit_player = logic.limit_player(this.world, this.#player);
   #move_player = logic.move_player(this.#world, this.#player, this.#ghost);
   #move_ghost = logic.move_ghost(this.#world, this.#ghost);
   #moving = logic.moving(this.#world);
@@ -111,20 +112,6 @@ export class GameContent extends CustomHTMLElement {
 
   #offset?: { x: number; y: number };
   #current!: { x: number; y: number };
-
-  #limit_player() {
-    const { x, y } = this.#player.position!;
-    if (x < 10) {
-      this.#player.velocity!.x += 1;
-    } else if (x > 90) {
-      this.#player.velocity!.x -= 1;
-    }
-    if (y < 10) {
-      this.#player.velocity!.y += 1;
-    } else if (y > this.canvas.height - 10) {
-      this.#player.velocity!.y -= 1;
-    }
-  }
 
   #enemy_timer = new Timer(100);
   #spawn_enemy() {
