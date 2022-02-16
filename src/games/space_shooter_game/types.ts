@@ -18,7 +18,7 @@ export interface Spawner<
   (this: State, source: Inputs): Partial<Components> | undefined;
 }
 
-export function createBulletSpawner<
+export function createSpawner<
   State,
   Input extends PartialComponent<"position"> = PartialComponent<"position">
 >(state: State, f: Spawner<State, Input>): Spawner<void> {

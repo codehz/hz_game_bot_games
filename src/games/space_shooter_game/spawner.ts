@@ -1,5 +1,5 @@
 import {
-  createBulletSpawner,
+  createSpawner,
   PartialComponent,
   Spawner,
   TaggedComponents,
@@ -139,7 +139,7 @@ export function ufo(
     spawn_bullets: [0, 1, 2, 3]
       .map((x) => (x * Math.PI) / 2)
       .map((deg) =>
-        createBulletSpawner(
+        createSpawner(
           new Timer(4),
           function ({
             position,

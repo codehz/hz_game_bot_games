@@ -15,7 +15,7 @@ import GameCanvas from "/js/canvas.js";
 import loading from "./loader.js";
 import World from "/js/ecs.js";
 import { Timer } from "/js/utils.js";
-import { defaults, resource, createBulletSpawner } from "./types.js";
+import { defaults, resource, createSpawner } from "./types.js";
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
 import * as spawner from "./spawner.js";
@@ -64,7 +64,7 @@ export class GameContent extends CustomHTMLElement {
         scale: 0.2,
         player_model: { color: "blue", shape: 1 },
       },
-      createBulletSpawner(new Timer(20), function ({ position: { x, y } }) {
+      createSpawner(new Timer(20), function ({ position: { x, y } }) {
         if (!this.next()) return;
         return spawner.bullet(
           {
@@ -139,7 +139,7 @@ export class GameContent extends CustomHTMLElement {
           scale: 0.2,
           atlas: atlas.get("cockpitBlue_0")!,
         },
-        createBulletSpawner(new Timer(40), function ({ position: { x, y } }) {
+        createSpawner(new Timer(40), function ({ position: { x, y } }) {
           if (!this.next()) return;
           return spawner.bullet(
             {
