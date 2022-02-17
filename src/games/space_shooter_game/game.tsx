@@ -97,6 +97,9 @@ export class GameContent extends CustomHTMLElement {
     atlas: atlas.get("playerShip1_blue")!,
   });
 
+  #spawn_children = logic.spawn_children(this.#world);
+  #run_parent_trigger = logic.run_parent_trigger(this.#world);
+  #cleanup_children = logic.cleanup_children(this.#world);
   #attach_player_atlas = logic.attach_player_atlas(this.#world);
   #attach_player_overlay = logic.attach_player_overlay(this.#world);
   #set_player_overlay_based_on_health =
@@ -110,7 +113,6 @@ export class GameContent extends CustomHTMLElement {
   #calc_rotate = logic.calc_rotate(this.#world);
   #keep_alive = logic.keep_alive(this.#world);
   #collision_detection = logic.collision_detection(this.#world);
-  #spawn_bullets = logic.spawn_bullets(this.#world);
   #clean_range = logic.clean_range(this.#world);
   #clean_dying = logic.clean_dying(this.#world);
   #auto_rotate = logic.auto_rotate(this.#world);
@@ -184,6 +186,8 @@ export class GameContent extends CustomHTMLElement {
     }
     this.#world.resource.height_limit = this.canvas.height;
 
+    this.#spawn_children();
+    this.#run_parent_trigger();
     this.#attach_player_atlas(atlas);
     this.#attach_player_overlay(atlas);
     this.#set_player_overlay_based_on_health();
@@ -198,8 +202,8 @@ export class GameContent extends CustomHTMLElement {
     this.#clean_range();
     this.#collision_detection();
     this.#clean_lowlife();
+    this.#cleanup_children();
     this.#clean_dying();
-    this.#spawn_bullets();
     this.#spawn_enemy();
     this.#calc_rotate();
 

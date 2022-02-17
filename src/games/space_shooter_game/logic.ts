@@ -8,6 +8,37 @@ import {
 } from "./types.js";
 import { TextureAtlas } from "/js/atlas.js";
 
+export const spawn_children = makeSystem(["spawn_children"], function (view) {
+  for (const o of view) {
+    const { spawn_children: children } = o;
+    Promise.all(
+      children.map((child) => this.defer_add({ ...child, parent: o }))
+    ).then((children) => this.defer_update(o, { children }));
+    this.defer_remove_component(o, "spawn_children");
+  }
+});
+
+export const run_parent_trigger = makeSystem(
+  ["parent_trigger", "parent"],
+  function (view) {
+    for (const { parent, parent_trigger } of view)
+      processTrigger(this, parent, parent_trigger(parent));
+  }
+);
+
+export const cleanup_children = makeSystem(
+  ["dying", "children"],
+  function (view) {
+    for (const o of view) {
+      this.defer_remove_component(o, "children");
+      for (const child of o.children) {
+        this.defer_update(child, { dying: o.dying, position: o.position });
+        this.defer_remove_component(child, "parent");
+      }
+    }
+  }
+);
+
 export const attach_player_atlas = makeSystem(
   ["-atlas", "player_model"],
   function (view, atlas: TextureAtlas) {
@@ -89,7 +120,6 @@ export const start_crash_animate = makeSystem(
         "dying",
         "tag_crashable",
         "hitbox",
-        "frame_trigger"
       );
       this.defer_add_component(obj, "tag_crashing", true);
       this.defer_add_component(obj, "animate", {
@@ -206,19 +236,10 @@ export const clean_range = makeSystem(
           (y < -10 && vy <= 0) ||
           (y >= this.resource.height_limit + 10 && vy > 0)
       )
-      .forEach((o) => this.defer_remove(o));
-  }
-);
-
-export const spawn_bullets = makeSystem(
-  ["position", "velocity", "frame_trigger"],
-  function (view) {
-    view
-      .iter()
-      .flatMap((self) =>
-        self.frame_trigger.map((info) => ({ self, res: info(self) }))
-      )
-      .forEach(({ self, res }) => processTrigger(this, self, res));
+      .forEach((o) => {
+        this.defer_remove_components(o, "velocity", "tag_crashable");
+        this.defer_add_component(o, "dying", "out of range");
+      });
   }
 );
 

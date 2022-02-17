@@ -85,6 +85,12 @@ export type HasTag<S extends string = string> = {
   [key in `tag_${S}`]: true;
 };
 
+function getRawObject<T extends object>(obj: T): T {
+  let proto: any;
+  while ((proto = Object.getPrototypeOf(obj)) != null) obj = proto;
+  return obj;
+}
+
 export default class World<
   C extends Record<string, any>,
   R extends Record<string, any>
@@ -114,7 +120,9 @@ export default class World<
 
   #handler: ProxyHandler<object> = {
     getPrototypeOf: (target) => target,
-    setPrototypeOf: () => false,
+    setPrototypeOf() {
+      throw new TypeError("misuse");
+    },
     get: (target, key) => {
       if (typeof key == "symbol") return undefined;
       if (key.startsWith("$")) {
@@ -157,11 +165,14 @@ export default class World<
     return proxy;
   }
 
-  defer_add(obj: Partial<C> & Taggable) {
-    this.#deferred.push(() => this.add(obj));
+  defer_add(obj: Partial<C> & Taggable): Promise<EntityProxy<C>> {
+    return new Promise((resolve) =>
+      this.#deferred.push(() => resolve(this.add(obj)))
+    );
   }
 
   remove(obj: Partial<C>) {
+    obj = getRawObject(obj);
     for (const view of this.#views) view.remove(obj);
     this.#entities.delete(obj);
   }
@@ -171,6 +182,7 @@ export default class World<
   }
 
   get(obj: object): EntityProxy<C> | undefined {
+    obj = getRawObject(obj);
     return this.#entities.get(obj);
   }
 
@@ -183,7 +195,7 @@ export default class World<
     obj: object,
     key: K,
     value: C[K]
-  ): void
+  ): void;
   defer_add_component<K extends string & keyof C>(
     obj: object,
     key: K | `tag_${string}`,

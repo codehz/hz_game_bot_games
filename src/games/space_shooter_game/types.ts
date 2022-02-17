@@ -24,7 +24,7 @@ export type TriggerResult =
 
 export interface Trigger<
   State = void,
-  Inputs extends Partial<TaggableComponents> = PartialComponent<"position">
+  Inputs extends Partial<TaggableComponents> = Partial<TaggableComponents>
 > {
   (this: State, source: Inputs): Generator<TriggerResult>;
 }
@@ -77,6 +77,10 @@ type PickByType<T, Value> = {
 };
 
 export interface Components {
+  parent: Partial<TaggableComponents>;
+  parent_trigger: Trigger;
+  children: Partial<TaggableComponents>[];
+  spawn_children: Omit<Partial<TaggableComponents>, "parent">[];
   position: Vec2;
   ghost_position: Vec2;
   velocity: Vec2;
@@ -108,7 +112,6 @@ export interface Components {
   damage: number;
   keep_alive: number;
   die_trigger: Trigger;
-  frame_trigger: Trigger[];
   dying: string;
 }
 
@@ -116,6 +119,10 @@ export type PartialComponent<S extends keyof Components> = Pick<Components, S> &
   Partial<Components>;
 
 export const defaults: Components = {
+  parent: null as any,
+  parent_trigger: null as any,
+  children: [],
+  spawn_children: [],
   position: { x: 0, y: 0 },
   ghost_position: { x: 0, y: 0 },
   velocity: { x: 0, y: 0 },
@@ -143,7 +150,6 @@ export const defaults: Components = {
   damage: 0,
   keep_alive: 0,
   die_trigger: null as any,
-  frame_trigger: [],
   dying: "unknown",
 };
 
