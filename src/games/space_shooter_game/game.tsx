@@ -141,7 +141,7 @@ export class GameContent extends CustomHTMLElement {
           position: { x: Math.random() * 80 + 10, y: -10 },
           velocity: { x: 0, y: 0.5 },
           scale: 0.2,
-          atlas: atlas.get("cockpitBlue_0")!,
+          atlas: atlas.get("enemyBlack1")!,
         },
         withTriggerState(new Timer(40), function* ({ position: { x, y } }) {
           if (!this.next()) return;
