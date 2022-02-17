@@ -296,7 +296,9 @@ export const tracking_player = makeSystem(
       const range2 = range ** 2;
       const dx = diff.x;
       const adj =
-        dis2 < range2 && dis2 > (rate * 2) ** 2 ? Math.sign(dx) * rate : 0;
+        dis2 < range2 && dis2 > (rate * 2) ** 2 && diff.y > 0
+          ? Math.sign(dx) * rate
+          : 0;
       o.velocity.x = (o.velocity.x * 9 + adj) / 10;
     }
   }
