@@ -221,8 +221,8 @@ export class GameContent extends CustomHTMLElement {
   @attach("frame", "#canvas")
   on_frame(ctx: CanvasRenderingContext2D) {
     this.#rendering_sprite(ctx);
-    this.#rendering_bullet(ctx);
     this.#draw_overlay(ctx);
+    this.#rendering_bullet(ctx);
     // this.#debug_hitbox(ctx);
     this.#debug_entities(ctx);
     this.#draw_helth(ctx);
