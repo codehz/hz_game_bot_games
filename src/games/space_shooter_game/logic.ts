@@ -303,3 +303,25 @@ export const tracking_player = makeSystem(
     }
   }
 );
+
+export const random_walking = makeSystem(
+  ["random_walking", "velocity", "position"],
+  (view) => {
+    for (const o of view) {
+      const {
+        random_walking: { timeout_initial, rate, edge },
+        position: { x },
+      } = o;
+      if (x < edge) {
+        o.velocity.x = (Math.random() * rate) / 2;
+        o.random_walking.timeout = timeout_initial;
+      } else if (x > 100 - edge) {
+        o.velocity.x = (-Math.random() * rate) / 2;
+        o.random_walking.timeout = timeout_initial;
+      } else if (o.random_walking.timeout-- <= 0) {
+        o.random_walking.timeout = timeout_initial;
+        o.velocity.x = Math.random() * rate - rate / 2;
+      }
+    }
+  }
+);

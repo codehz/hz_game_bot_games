@@ -118,6 +118,7 @@ export class GameContent extends CustomHTMLElement {
   #auto_rotate = logic.auto_rotate(this.#world);
   #clean_lowlife = logic.clean_lowlife(this.#world);
   #tracking_player = logic.tracking_player(this.#world, this.#player);
+  #random_walking = logic.random_walking(this.#world);
   #rendering_sprite = rendering.sprite(this.#world, sheet);
   #rendering_bullet = rendering.bullet(this.#world, sheet);
   #draw_overlay = rendering.overlay(this.#world, sheet);
@@ -148,6 +149,12 @@ export class GameContent extends CustomHTMLElement {
           velocity: { x: 0, y: 0.5 },
           scale: 0.2,
           atlas: atlas.get("enemyBlack1")!,
+          random_walking: {
+            timeout: 50,
+            timeout_initial: 100,
+            rate: 1,
+            edge: 10,
+          },
         },
         withTriggerState(new Timer(40), function* ({ position: { x, y } }) {
           if (!this.next()) return;
@@ -214,6 +221,7 @@ export class GameContent extends CustomHTMLElement {
     this.#spawn_enemy();
     this.#calc_rotate();
     this.#tracking_player();
+    this.#random_walking();
 
     this.#world.sync();
   }

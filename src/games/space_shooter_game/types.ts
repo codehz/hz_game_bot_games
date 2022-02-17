@@ -118,6 +118,12 @@ export interface Components {
     range: number;
     rate: number;
   };
+  random_walking: {
+    timeout: number;
+    timeout_initial: number;
+    rate: number;
+    edge: number;
+  };
 }
 
 export type PartialComponent<S extends keyof Components> = Pick<Components, S> &
@@ -158,6 +164,12 @@ export const defaults: Components = {
   die_trigger: null as any,
   dying: "unknown",
   tracking_player: null as any,
+  random_walking: {
+    timeout: 0,
+    timeout_initial: 0,
+    rate: 0,
+    edge: 0,
+  },
 };
 
 export type Resource = {
