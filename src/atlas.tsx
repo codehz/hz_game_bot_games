@@ -2,8 +2,6 @@ import {
   css,
   customElement,
   CustomHTMLElement,
-  listen,
-  mount,
   select,
 } from "/js/ce.js";
 import jsx from "/js/jsx.js";
