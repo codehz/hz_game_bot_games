@@ -109,7 +109,7 @@ export class GameContent extends CustomHTMLElement {
   #moving = logic.moving(this.#world);
   #keep_alive = logic.keep_alive(this.#world);
   #collision_detection = logic.collision_detection(this.#world);
-  #frame_trigger = logic.frame_trigger(this.#world);
+  #spawn_bullets = logic.spawn_bullets(this.#world);
   #clean_range = logic.clean_range(this.#world);
   #clean_dying = logic.clean_dying(this.#world);
   #auto_rotate = logic.auto_rotate(this.#world);
@@ -198,7 +198,7 @@ export class GameContent extends CustomHTMLElement {
     this.#collision_detection();
     this.#clean_lowlife();
     this.#clean_dying();
-    this.#frame_trigger();
+    this.#spawn_bullets();
     this.#spawn_enemy();
 
     this.#world.sync();

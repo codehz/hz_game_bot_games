@@ -176,15 +176,12 @@ export const clean_dying = makeSystem(
   }
 );
 
-export const clean_lowlife = makeSystem(
-  ["life", "-tag_crashing"],
-  function (view) {
-    view
-      .iter()
-      .filter((o) => o.life <= 0)
-      .forEach((o) => this.defer_add_component(o, "dying", "low life"));
-  }
-);
+export const clean_lowlife = makeSystem(["life", "-tag_crashing"], function (view) {
+  view
+    .iter()
+    .filter((o) => o.life <= 0)
+    .forEach((o) => this.defer_add_component(o, "dying", "low life"));
+});
 
 export const clean_range = makeSystem(
   ["position", "velocity", "-tag_player"],
@@ -202,12 +199,14 @@ export const clean_range = makeSystem(
   }
 );
 
-export const frame_trigger = makeSystem(
+export const spawn_bullets = makeSystem(
   ["position", "velocity", "frame_trigger"],
   function (view) {
     view
       .iter()
-      .map((self) => ({ self, res: self.frame_trigger?.(self) }))
+      .flatMap((self) =>
+        self.frame_trigger.map((info) => ({ self, res: info(self) }))
+      )
       .forEach(({ self, res }) => processTrigger(this, self, res));
   }
 );
