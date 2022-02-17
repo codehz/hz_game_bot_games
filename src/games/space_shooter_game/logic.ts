@@ -1,5 +1,4 @@
 import {
-  Components,
   makePureSystem,
   makeSystem,
   OurEntity,
