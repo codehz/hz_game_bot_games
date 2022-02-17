@@ -116,3 +116,15 @@ export const draw_health = makePureSystem(function (
   outlineText(ctx, "" + life, 57, 5);
   ctx.restore();
 });
+
+export const debug_entities = makePureSystem(function (ctx: CanvasRenderingContext2D) {
+  const count = this.entitiesCount;
+  ctx.save();
+  ctx.strokeStyle = "#777";
+  ctx.fillStyle = "white";
+  ctx.font = "4px 'kenvector future'";
+  ctx.textBaseline = "hanging";
+  
+  outlineText(ctx, `ENTITIES: ${count}`, 5, 10);
+  ctx.restore();
+});

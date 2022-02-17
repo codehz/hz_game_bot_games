@@ -120,6 +120,7 @@ export class GameContent extends CustomHTMLElement {
   #rendering = rendering.sprite(this.#world, sheet);
   #draw_overlay = rendering.overlay(this.#world, sheet);
   #debug_hitbox = rendering.debug_hitbox(this.#world);
+  #debug_entities = rendering.debug_entities(this.#world);
   #draw_helth = rendering.draw_health(this.#world, this.#player);
 
   #offset?: { x: number; y: number };
@@ -215,6 +216,7 @@ export class GameContent extends CustomHTMLElement {
     this.#rendering(ctx);
     this.#draw_overlay(ctx);
     // this.#debug_hitbox(ctx);
+    this.#debug_entities(ctx);
     this.#draw_helth(ctx);
   }
 

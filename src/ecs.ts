@@ -114,6 +114,14 @@ export default class World<
     return this.#resource;
   }
 
+  get entities() {
+    return this.#entities.values();
+  }
+
+  get entitiesCount() {
+    return this.#entities.size;
+  }
+
   #index(key: keyof C | `tag_${string}`): ViewLike[] {
     return this.#view_index[key] ?? (this.#view_index[key] = []);
   }
