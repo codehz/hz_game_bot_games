@@ -115,12 +115,7 @@ export const start_crash_animate = makeSystem(
   function (view) {
     for (const obj of view) {
       const { dying } = obj;
-      this.defer_remove_components(
-        obj,
-        "dying",
-        "tag_crashable",
-        "hitbox",
-      );
+      this.defer_remove_components(obj, "dying", "tag_crashable", "hitbox");
       this.defer_add_component(obj, "tag_crashing", true);
       this.defer_add_component(obj, "animate", {
         target: {
@@ -190,13 +185,16 @@ export const move_ghost = makePureSystem(function (_: void, ghost: OurEntity) {
   }
 });
 
-export const calc_rotate = makeSystem(["-rotate", "velocity"], function (view) {
-  for (const o of view) {
-    const { x, y } = o.velocity;
-    const rotate = Math.atan2(x, -y);
-    this.defer_update(o, { rotate });
+export const calc_rotate = makeSystem(
+  ["-rotate", "velocity", "-tag_bullet"],
+  function (view) {
+    for (const o of view) {
+      const { x, y } = o.velocity;
+      const rotate = Math.atan2(x, -y);
+      this.defer_update(o, { rotate });
+    }
   }
-});
+);
 
 export const auto_rotate = makeSystem(["auto_rotate", "rotate"], (view) => {
   for (const o of view) {
@@ -284,3 +282,21 @@ export const moving = makeSystem(["position", "velocity"], (view) => {
     position.y += velocity.y;
   }
 });
+
+export const tracking_player = makeSystem(
+  ["tracking_player", "position", "velocity"],
+  (view, _: void, player: OurEntity) => {
+    const target = player.position!;
+    for (const o of view) {
+      const { range, rate } = o.tracking_player;
+      const source = o.position;
+      const diff = { x: target.x - source.x, y: target.y - source.y };
+      const dis2 = diff.x ** 2 + diff.y ** 2;
+      const range2 = range ** 2;
+      const dx = diff.x;
+      const adj =
+        dis2 < range2 && dis2 > (rate * 2) ** 2 ? Math.sign(dx) * rate : 0;
+      o.velocity.x = (o.velocity.x * 9 + adj) / 10;
+    }
+  }
+);

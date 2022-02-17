@@ -117,7 +117,9 @@ export class GameContent extends CustomHTMLElement {
   #clean_dying = logic.clean_dying(this.#world);
   #auto_rotate = logic.auto_rotate(this.#world);
   #clean_lowlife = logic.clean_lowlife(this.#world);
-  #rendering = rendering.sprite(this.#world, sheet);
+  #tracking_player = logic.tracking_player(this.#world, this.#player);
+  #rendering_sprite = rendering.sprite(this.#world, sheet);
+  #rendering_bullet = rendering.bullet(this.#world, sheet);
   #draw_overlay = rendering.overlay(this.#world, sheet);
   #debug_hitbox = rendering.debug_hitbox(this.#world);
   #debug_entities = rendering.debug_entities(this.#world);
@@ -161,6 +163,10 @@ export class GameContent extends CustomHTMLElement {
                 team: "HOSTILE",
                 hitbox: { halfwidth: 0.5, halfheight: 3 },
                 damage: 10,
+                tracking_player: {
+                  range: 100,
+                  rate: 0.1,
+                },
               },
               {
                 scale: 0.2,
@@ -207,13 +213,15 @@ export class GameContent extends CustomHTMLElement {
     this.#clean_dying();
     this.#spawn_enemy();
     this.#calc_rotate();
+    this.#tracking_player();
 
     this.#world.sync();
   }
 
   @attach("frame", "#canvas")
   on_frame(ctx: CanvasRenderingContext2D) {
-    this.#rendering(ctx);
+    this.#rendering_sprite(ctx);
+    this.#rendering_bullet(ctx);
     this.#draw_overlay(ctx);
     // this.#debug_hitbox(ctx);
     this.#debug_entities(ctx);

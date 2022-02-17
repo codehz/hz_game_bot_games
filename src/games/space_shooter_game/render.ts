@@ -1,7 +1,7 @@
 import { makePureSystem, makeSystem, OurEntity } from "./types.js";
 
 export const sprite = makeSystem(
-  ["position", "atlas", "rotate", "scale", "opacity"],
+  ["position", "atlas", "rotate", "scale", "opacity", "-tag_bullet"],
   function (view, ctx: CanvasRenderingContext2D, image: ImageBitmap) {
     for (const {
       atlas,
@@ -10,6 +10,30 @@ export const sprite = makeSystem(
       scale,
       opacity,
     } of view) {
+      const { width, height } = atlas;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotate);
+      ctx.scale(scale, scale);
+      ctx.translate(-width / 2, -height / 2);
+      ctx.globalAlpha = opacity;
+      atlas.blit(ctx, image);
+      ctx.restore();
+    }
+  }
+);
+
+export const bullet = makeSystem(
+  ["position", "velocity", "atlas", "scale", "opacity", "tag_bullet"],
+  function (view, ctx: CanvasRenderingContext2D, image: ImageBitmap) {
+    for (const {
+      atlas,
+      position: { x, y },
+      velocity,
+      scale,
+      opacity,
+    } of view) {
+      const rotate = Math.atan2(velocity.x, -velocity.y);
       const { width, height } = atlas;
       ctx.save();
       ctx.translate(x, y);
@@ -117,14 +141,16 @@ export const draw_health = makePureSystem(function (
   ctx.restore();
 });
 
-export const debug_entities = makePureSystem(function (ctx: CanvasRenderingContext2D) {
+export const debug_entities = makePureSystem(function (
+  ctx: CanvasRenderingContext2D
+) {
   const count = this.entitiesCount;
   ctx.save();
   ctx.strokeStyle = "#777";
   ctx.fillStyle = "white";
   ctx.font = "4px 'kenvector future'";
   ctx.textBaseline = "hanging";
-  
+
   outlineText(ctx, `ENTITIES: ${count}`, 5, 10);
   ctx.restore();
 });

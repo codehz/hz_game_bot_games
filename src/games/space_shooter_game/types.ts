@@ -84,6 +84,7 @@ export interface Components {
   position: Vec2;
   ghost_position: Vec2;
   velocity: Vec2;
+  velocity_limit: number;
   atlas: AtlasDescriptor;
   player_model: {
     shape: 1 | 2 | 3;
@@ -113,6 +114,10 @@ export interface Components {
   keep_alive: number;
   die_trigger: Trigger;
   dying: string;
+  tracking_player: {
+    range: number;
+    rate: number;
+  };
 }
 
 export type PartialComponent<S extends keyof Components> = Pick<Components, S> &
@@ -126,6 +131,7 @@ export const defaults: Components = {
   position: { x: 0, y: 0 },
   ghost_position: { x: 0, y: 0 },
   velocity: { x: 0, y: 0 },
+  velocity_limit: 0,
   atlas: null as any,
   overlay: null as any,
   player_model: {
@@ -151,6 +157,7 @@ export const defaults: Components = {
   keep_alive: 0,
   die_trigger: null as any,
   dying: "unknown",
+  tracking_player: null as any,
 };
 
 export type Resource = {
