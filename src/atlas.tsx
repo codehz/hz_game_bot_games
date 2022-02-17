@@ -1,9 +1,4 @@
-import {
-  css,
-  customElement,
-  CustomHTMLElement,
-  select,
-} from "/js/ce.js";
+import { css, customElement, CustomHTMLElement, select } from "/js/ce.js";
 import jsx from "/js/jsx.js";
 
 export class AtlasDescriptor {
@@ -153,9 +148,12 @@ export class AtlasViewer extends CustomHTMLElement {
     this.#image = image;
     this.#atlas = atlas;
 
+    const list = [...this.#atlas.list()];
+    list.sort((a, b) => a.name.localeCompare(b.name));
+
     this.shadowTemplate = (
       <>
-        {[...this.#atlas.list()].map((attr) => (
+        {list.map((attr) => (
           <AtlasPreview image={image} attr={attr} />
         ))}
       </>
