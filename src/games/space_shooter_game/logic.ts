@@ -160,6 +160,14 @@ export const move_ghost = makePureSystem(function (_: void, ghost: OurEntity) {
   }
 });
 
+export const calc_rotate = makeSystem(["-rotate", "velocity"], function (view) {
+  for (const o of view) {
+    const { x, y } = o.velocity;
+    const rotate = Math.atan2(x, -y);
+    this.defer_update(o, { rotate });
+  }
+});
+
 export const auto_rotate = makeSystem(["auto_rotate", "rotate"], (view) => {
   for (const o of view) {
     o.rotate += o.auto_rotate;
@@ -176,12 +184,15 @@ export const clean_dying = makeSystem(
   }
 );
 
-export const clean_lowlife = makeSystem(["life", "-tag_crashing"], function (view) {
-  view
-    .iter()
-    .filter((o) => o.life <= 0)
-    .forEach((o) => this.defer_add_component(o, "dying", "low life"));
-});
+export const clean_lowlife = makeSystem(
+  ["life", "-tag_crashing"],
+  function (view) {
+    view
+      .iter()
+      .filter((o) => o.life <= 0)
+      .forEach((o) => this.defer_add_component(o, "dying", "low life"));
+  }
+);
 
 export const clean_range = makeSystem(
   ["position", "velocity", "-tag_player"],

@@ -162,11 +162,9 @@ export function ufo(
               x: vx + Math.sin(rotate + deg) * 0.8,
               y: vy + -Math.cos(rotate + deg) * 0.8,
             };
-            const rot = Math.atan2(vel.x, -vel.y);
             yield Trigger.spawn({
               position: { ...position },
               velocity: vel,
-              rotate: rot,
               opacity: 1,
               scale: 0.15,
               atlas: bulletAtlas,
