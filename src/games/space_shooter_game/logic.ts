@@ -287,6 +287,7 @@ export const tracking_player = makeSystem(
   ["tracking_player", "position", "velocity"],
   (view, _: void, player: OurEntity) => {
     const target = player.position!;
+    if (player.life! <= 0) return;
     for (const o of view) {
       const { range, rate } = o.tracking_player;
       const source = o.position;
