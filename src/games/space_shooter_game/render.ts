@@ -138,6 +138,14 @@ export const draw_health = makePureSystem(function (
   ctx.textBaseline = "hanging";
   outlineText(ctx, "HP:", 5, 5);
   outlineText(ctx, "" + life, 57, 5);
+  outlineText(
+    ctx,
+    `DMG:${player.player_stats!.damage.toFixed(1)} TIM:${
+      player.player_stats!.time
+    }(${player.player_stats!.time_limit})`,
+    5,
+    10
+  );
   ctx.restore();
 });
 
@@ -150,8 +158,8 @@ export const debug_entities = makeSystem(
     ctx.fillStyle = "white";
     ctx.font = "4px 'kenvector future'";
     ctx.textBaseline = "hanging";
-    outlineText(ctx, `ENTITIES: ${count}`, 5, 10);
-    outlineText(ctx, `DYING: ${view.size}`, 5, 15);
+    outlineText(ctx, `ENTITIES: ${count}`, 5, 15);
+    outlineText(ctx, `DYING: ${view.size}`, 5, 20);
     ctx.restore();
   }
 );

@@ -141,6 +141,11 @@ export interface Components {
     stability: number;
   };
   event_player_upgrade_weapon: "count" | "damage" | "spread" | "stability" | "reset";
+  player_stats: {
+    damage: number;
+    time_limit: number;
+    time: number;
+  };
   player_overlay: number;
   animate: {
     target: Partial<PickByType<Components, number>>;
