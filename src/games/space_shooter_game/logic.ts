@@ -1,14 +1,19 @@
 import {
+  Effect,
   makePureSystem,
   makeSystem,
   OurEntity,
   OurWorld,
   processTrigger,
+  processTriggerResult,
   Team,
   Trigger,
+  withTriggerState,
 } from "./types.js";
 import { sameEntity } from "/js/ecs.js";
 import { TextureAtlas } from "/js/atlas.js";
+import { range, Timer } from "/js/utils.js";
+import * as spawner from "./spawner.js";
 
 export const spawn_children = makeSystem(["spawn_children"], function (view) {
   for (const o of view) {
@@ -290,11 +295,16 @@ function general_collision_detection(
           hitbox: { halfwidth, halfheight },
         } = b;
         if (a.team == b.team) continue;
+        if (b.collision_filter?.(a) === false) continue;
         const [x_min2, x_max2] = [x - halfwidth, x + halfwidth];
         const [y_min2, y_max2] = [y - halfheight, y + halfheight];
         if (x_max < x_min2 || x_min > x_max2) continue;
         if (y_max < y_min2 || y_min > y_max2) continue;
-        world.defer_push_array(a, "effects", ...b.collision_effects);
+        if (typeof b.collision_effects == "function") {
+          world.defer_push_array(a, "effects", ...b.collision_effects(a));
+        } else {
+          world.defer_push_array(a, "effects", ...b.collision_effects);
+        }
         world.get(b)!.dying = "self destructure";
       }
     }
@@ -385,14 +395,79 @@ export const apply_effects = makeSystem(["effects"], function (view) {
           return old - effect.value;
         },
       });
-    else if (effect.type == "filter_children") {
-      if (o.children != null)
-        o.children
-          .filter((child) => !effect.filter(child))
-          .forEach((child) =>
-            this.defer_update(child, { dying: "removed by effect" })
-          );
-    } else if (effect.type == "spawn_children")
-      this.defer_push_array(o, "spawn_children", ...effect.templates);
+    else if (effect.type == "trigger")
+      processTriggerResult(this, o, effect.trigger);
   }
 });
+
+export const sync_player_weapon = makeSystem(
+  ["player_weapon", "event_player_upgrade_weapon", "player_model"],
+  function (view, _: void, atlas: TextureAtlas) {
+    for (const o of view) {
+      this.defer_remove_component(o, "event_player_upgrade_weapon");
+      const method = o.event_player_upgrade_weapon;
+      const weapon = o.player_weapon;
+      switch (method) {
+        case "count":
+        case "damage":
+        case "spread":
+          weapon[method]++;
+          break;
+      }
+      const { color } = o.player_model;
+      const colorStr = color[0].toUpperCase() + color.slice(1);
+      let { damage, count, spread } = weapon;
+      console.assert(count > 0);
+      console.assert(spread > 0);
+      let timeout = (20 * Math.sqrt(spread)) | 0;
+      while (--count > 0 && timeout > 10)
+        timeout = Math.max(5, timeout * 0.9) | 0;
+      damage *= 10;
+      damage += 40 + count * 5;
+      this.defer_push_array(
+        o,
+        "effects",
+        Effect.trigger(
+          Trigger.filter_children(({ tag_weapon }) => !tag_weapon)
+        ),
+        Effect.trigger(
+          Trigger.spawn_children(
+            ...[...range(spread)].map(
+              (i) =>
+                ({
+                  tag_weapon: true,
+                  parent_trigger: withTriggerState(
+                    new Timer(timeout),
+                    function* ({ position }) {
+                      if (!this.next()) return;
+                      yield Trigger.spawn(
+                        spawner.bullet(
+                          {
+                            position: { ...position! },
+                            velocity: {
+                              x: spread > 1 ? (i + 0.5) / spread - 0.5 : 0,
+                              y: -2,
+                            },
+                            scale: 0.2,
+                            atlas: atlas.get(`laser${colorStr}01`)!,
+                            collision_effects: [Effect.damage(damage)],
+                            team: "FRIENDLY",
+                            hitbox: { halfwidth: 0.5, halfheight: 3 },
+                          },
+                          {
+                            atlas: atlas.get(`laser${colorStr}08`)!,
+                            scale: 0.2,
+                            keep_alive: 20,
+                          }
+                        )
+                      );
+                    }
+                  ),
+                } as const)
+            )
+          )
+        )
+      );
+    }
+  }
+);

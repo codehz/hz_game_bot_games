@@ -14,8 +14,14 @@ import {
 import GameCanvas from "/js/canvas.js";
 import loading from "./loader.js";
 import World from "/js/ecs.js";
-import { Timer } from "/js/utils.js";
-import { defaults, resource, withTriggerState, Trigger, Effect } from "./types.js";
+import { randomSelect, Timer } from "/js/utils.js";
+import {
+  defaults,
+  resource,
+  withTriggerState,
+  Trigger,
+  Effect,
+} from "./types.js";
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
 import * as spawner from "./spawner.js";
@@ -55,38 +61,20 @@ export class GameContent extends CustomHTMLElement {
   #world = new World(defaults, resource);
 
   #player = this.#world.add(
-    spawner.player(
-      {
-        life: 100,
-        hitbox: { halfheight: 5, halfwidth: 3 },
-        position: { x: 50, y: 100 },
-        velocity: { x: 0, y: 0 },
-        scale: 0.2,
-        player_model: { color: "blue", shape: 1 },
+    spawner.player({
+      life: 100,
+      hitbox: { halfheight: 5, halfwidth: 3 },
+      position: { x: 50, y: 100 },
+      velocity: { x: 0, y: 0 },
+      scale: 0.2,
+      player_model: { color: "blue", shape: 1 },
+      event_player_upgrade_weapon: "reset",
+      player_weapon: {
+        count: 1,
+        damage: 1,
+        spread: 1,
       },
-      withTriggerState(new Timer(20), function* ({ position }) {
-        if (!this.next()) return;
-        yield Trigger.spawn(
-          spawner.bullet(
-            {
-              position: { ...position! },
-              velocity: { x: 0, y: -2 },
-              scale: 0.2,
-              atlas: atlas.get("laserBlue01")!,
-              keep_alive: 100,
-              collision_effects: [Effect.damage(50)],
-              team: "FRIENDLY",
-              hitbox: { halfwidth: 0.5, halfheight: 3 },
-            },
-            {
-              atlas: atlas.get("laserBlue08")!,
-              scale: 0.2,
-              keep_alive: 20,
-            }
-          )
-        );
-      })
-    )
+    })
   );
   #ghost = this.#world.add({
     tag_ghost: true,
@@ -105,6 +93,7 @@ export class GameContent extends CustomHTMLElement {
   #attach_player_overlay = logic.attach_player_overlay(this.#world);
   #set_player_overlay_based_on_health =
     logic.set_player_overlay_based_on_health(this.#world);
+  #sync_player_weapon = logic.sync_player_weapon(this.#world, atlas);
   #play_animate = logic.play_animate(this.#world);
   #start_crash_animate = logic.start_crash_animate(this.#world);
   #limit_player = logic.limit_player(this.#world, this.#player);
@@ -142,51 +131,65 @@ export class GameContent extends CustomHTMLElement {
   #enemy_timer = new Timer(100);
   #spawn_enemy() {
     if (!this.#enemy_timer.next()) return;
-    this.#world.add(
-      spawner.enemy(
-        {
-          hitbox: { halfwidth: 5, halfheight: 5 },
-          life: 100,
-          position: { x: Math.random() * 80 + 10, y: -10 },
-          velocity: { x: 0, y: 0.5 },
-          scale: 0.2,
-          atlas: atlas.get("enemyBlack1")!,
-          random_walking: {
-            timeout: 50,
-            timeout_initial: 100,
-            rate: 1,
-            edge: 10,
+    this.#world
+      .defer_add(
+        spawner.enemy(
+          {
+            hitbox: { halfwidth: 5, halfheight: 5 },
+            life: 100,
+            position: { x: Math.random() * 80 + 10, y: -10 },
+            velocity: { x: 0, y: 0.5 },
+            scale: 0.2,
+            atlas: atlas.get("enemyBlack1")!,
+            random_walking: {
+              timeout: 50,
+              timeout_initial: 100,
+              rate: 1,
+              edge: 10,
+            },
           },
-        },
-        withTriggerState(new Timer(40), function* ({ position }) {
-          if (!this.next()) return;
-          yield Trigger.spawn(
-            spawner.bullet(
-              {
-                position: { ...position! },
-                velocity: { x: 0, y: 1 },
-                rotate: Math.PI,
-                scale: 0.2,
-                atlas: atlas.get("laserRed01")!,
-                keep_alive: 500,
-                team: "HOSTILE",
-                hitbox: { halfwidth: 0.5, halfheight: 3 },
-                collision_effects: [Effect.damage(10)],
-                tracking_player: {
-                  range: 100,
-                  rate: 0.1,
+          withTriggerState(new Timer(40), function* ({ position }) {
+            if (!this.next()) return;
+            yield Trigger.spawn(
+              spawner.bullet(
+                {
+                  position: { ...position! },
+                  velocity: { x: 0, y: 1 },
+                  rotate: Math.PI,
+                  scale: 0.2,
+                  atlas: atlas.get("laserRed01")!,
+                  keep_alive: 500,
+                  team: "HOSTILE",
+                  hitbox: { halfwidth: 0.5, halfheight: 3 },
+                  collision_effects: [Effect.damage(10)],
+                  tracking_player: {
+                    range: 100,
+                    rate: 0.1,
+                  },
                 },
-              },
-              {
-                scale: 0.2,
-                atlas: atlas.get("laserRed08")!,
-                keep_alive: 20,
-              }
-            )
-          );
-        })
+                {
+                  scale: 0.2,
+                  atlas: atlas.get("laserRed08")!,
+                  keep_alive: 20,
+                }
+              )
+            );
+          })
+        )
       )
-    );
+      .then((o) => {
+        if (Math.random() > 0.5) {
+          o.die_trigger = function* ({ position }) {
+            yield Trigger.spawn(
+              spawner.powerup(
+                position!,
+                randomSelect(["count", "damage", "spread"]),
+                atlas
+              )
+            );
+          };
+        }
+      });
   }
 
   @attach("prepare", "#canvas")
@@ -207,6 +210,7 @@ export class GameContent extends CustomHTMLElement {
     this.#attach_player_atlas(atlas);
     this.#attach_player_overlay(atlas);
     this.#set_player_overlay_based_on_health();
+    this.#sync_player_weapon();
     this.#play_animate();
     this.#start_crash_animate();
     this.#auto_rotate();
@@ -235,7 +239,7 @@ export class GameContent extends CustomHTMLElement {
     this.#rendering_bullet(ctx);
     this.#rendering_sprite(ctx);
     this.#draw_overlay(ctx);
-    this.#debug_hitbox(ctx);
+    // this.#debug_hitbox(ctx);
     this.#debug_entities(ctx);
     this.#draw_helth(ctx);
   }
@@ -245,8 +249,8 @@ export class GameContent extends CustomHTMLElement {
       spawner.ufo(
         this.#player.position!,
         atlas.get("ufoBlue")!,
-        atlas.get("laserBlue08")!,
-        atlas.get("laserBlue07")!
+        atlas.get("laserBlue07")!,
+        atlas.get("laserBlue08")!
       )
     );
   }

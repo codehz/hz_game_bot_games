@@ -6,7 +6,7 @@ import {
   Effect,
   TaggedPartialComponents,
 } from "./types.js";
-import { AtlasDescriptor } from "/js/atlas.js";
+import { AtlasDescriptor, TextureAtlas } from "/js/atlas.js";
 import { range, Timer } from "/js/utils.js";
 
 export function bullet<
@@ -218,5 +218,60 @@ export function ufo(
         }
       ),
     })),
+  };
+}
+
+export function powerup(
+  position: Vec2,
+  kind: "count" | "damage" | "spread",
+  text_atlas: TextureAtlas
+): TaggedPartialComponents<
+  | "position"
+  | "atlas"
+  | "rotate"
+  | "scale"
+  | "opacity"
+  | "velocity"
+  | "team"
+  | "hitbox"
+  | "collision_filter"
+  | "collision_effects"
+  | "random_walking",
+  "bonus"
+> {
+  let atlas: AtlasDescriptor;
+  switch (kind) {
+    case "count":
+      atlas = text_atlas.get("powerupBlue_bolt")!;
+      break;
+    case "damage":
+      atlas = text_atlas.get("powerupRed_bolt")!;
+      break;
+    case "spread":
+      atlas = text_atlas.get("powerupGreen_bolt")!;
+      break;
+  }
+  return {
+    tag_bonus: true,
+    position: { ...position },
+    atlas,
+    rotate: 0,
+    scale: 0.2,
+    opacity: 1,
+    velocity: { x: 0, y: 0.2 },
+    team: "NATURAL",
+    hitbox: { halfwidth: 3, halfheight: 3 },
+    collision_filter({ tag_player }) {
+      return !!tag_player;
+    },
+    collision_effects: [
+      Effect.trigger(Trigger.update({ event_player_upgrade_weapon: kind })),
+    ],
+    random_walking: {
+      timeout: 50,
+      timeout_initial: 100,
+      rate: 0.5,
+      edge: 5,
+    },
   };
 }

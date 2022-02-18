@@ -306,6 +306,12 @@ export default class World<
     }
   }
 
+  defer(obj: object, action: (entity: EntityProxy<C>) => void) {
+    const cache = this.get(obj)!;
+    console.assert(cache != null);
+    this.#deferred.push(() => action(cache));
+  }
+
   sync() {
     this.#deferred.splice(0).forEach((f) => f());
   }

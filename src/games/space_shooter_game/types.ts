@@ -21,17 +21,29 @@ export interface Trigger<
   (this: State, source: Inputs): Generator<TriggerResult>;
 }
 
-export namespace Trigger {
-  export function spawn(template: Partial<TaggableComponents>) {
+export const Trigger = Object.freeze({
+  spawn(template: Partial<TaggableComponents>) {
     return { type: "spawn", template } as const;
-  }
-  export function update(template: Partial<TaggableComponents>) {
+  },
+  update(template: Partial<TaggableComponents>) {
     return { type: "update", template } as const;
-  }
-  export function remove(components: keyof Partial<TaggableComponents>) {
+  },
+  remove(components: keyof Partial<TaggableComponents>) {
     return { type: "remove", components } as const;
-  }
-}
+  },
+  action(action: (entity: OurEntity) => void) {
+    return { type: "action", action } as const;
+  },
+  filter_children(
+    filter: (obj: Partial<TaggableComponents>) => boolean,
+    reason: string = "removed by trigger"
+  ) {
+    return { type: "filter_children", filter, reason } as const;
+  },
+  spawn_children(...templates: Omit<Partial<TaggableComponents>, "parent">[]) {
+    return { type: "spawn_children", templates } as const;
+  },
+});
 
 export type TriggerResult = BuilderUnion<typeof Trigger>;
 
@@ -42,20 +54,36 @@ export function withTriggerState<
   return f.bind(state) as unknown as Trigger<void, Input>;
 }
 
+export function processTriggerResult(
+  world: OurWorld,
+  target: Partial<TaggableComponents>,
+  result: TriggerResult
+) {
+  if (result.type == "spawn") {
+    world.defer_add(result.template);
+  } else if (result.type == "update") {
+    world.defer_update(target, result.template);
+  } else if (result.type == "remove") {
+    world.defer_remove_components(target, ...(result.components as any));
+  } else if (result.type == "filter_children") {
+    target.children
+      ?.filter((child) => !result.filter(child))
+      .forEach((child) => world.defer_update(child, { dying: result.reason }));
+  } else if (result.type == "spawn_children") {
+    world.defer_push_array(target, "spawn_children", ...result.templates);
+  } else if (result.type == "action") {
+    world.defer(target, result.action);
+  }
+}
+
 export function processTrigger(
   world: OurWorld,
   target: Partial<TaggableComponents>,
   gen: Generator<TriggerResult> | undefined
 ) {
   if (!gen) return;
-  for (const item of gen) {
-    if (item.type == "spawn") {
-      world.defer_add(item.template);
-    } else if (item.type == "update") {
-      world.defer_update(target, item.template);
-    } else if (item.type == "remove") {
-      world.defer_remove_components(target, ...(item.components as any));
-    }
+  for (const result of gen) {
+    processTriggerResult(world, target, result);
   }
 }
 
@@ -63,15 +91,19 @@ export const Effect = Object.freeze({
   damage(value: number) {
     return { type: "damage", value } as const;
   },
-  filter_children(filter: (obj: Partial<TaggableComponents>) => boolean) {
-    return { type: "filter_children", filter } as const;
-  },
-  spawn_children(...templates: Omit<Partial<TaggableComponents>, "parent">[]) {
-    return { type: "spawn_children", templates } as const;
+  trigger(trigger: TriggerResult) {
+    return { type: "trigger", trigger } as const;
   },
 });
 
 export type Effect = BuilderUnion<typeof Effect>;
+
+export interface EffectGenerator<
+  State = void,
+  Inputs extends Partial<TaggableComponents> = Partial<TaggableComponents>
+> {
+  (this: State, source: Inputs): Generator<Effect>;
+}
 
 export interface Vec2 {
   x: number;
@@ -97,6 +129,12 @@ export interface Components {
     mode: GlobalCompositeOperation;
   };
   event_player_set_overlay: number;
+  player_weapon: {
+    count: number;
+    damage: number;
+    spread: number;
+  };
+  event_player_upgrade_weapon: "count" | "damage" | "spread" | "reset";
   player_overlay: number;
   animate: {
     target: Partial<PickByType<Components, number>>;
@@ -125,7 +163,8 @@ export interface Components {
     rate: number;
     edge: number;
   };
-  collision_effects: Effect[];
+  collision_filter: (input: Partial<TaggableComponents>) => boolean;
+  collision_effects: Effect[] | EffectGenerator;
   effects: Effect[];
 }
 
@@ -148,6 +187,8 @@ export const defaults: Components = {
     shape: 1,
   },
   event_player_set_overlay: 1,
+  player_weapon: null as any,
+  event_player_upgrade_weapon: null as any,
   player_overlay: 0,
   animate: {
     target: {},
@@ -172,6 +213,7 @@ export const defaults: Components = {
     rate: 0,
     edge: 0,
   },
+  collision_filter: null as any,
   collision_effects: [],
   effects: [],
 };
