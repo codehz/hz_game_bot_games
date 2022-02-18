@@ -411,20 +411,26 @@ export const sync_player_weapon = makeSystem(
         case "count":
         case "damage":
         case "spread":
+        case "stability":
           weapon[method]++;
           break;
       }
       const { color } = o.player_model;
       const colorStr = color[0].toUpperCase() + color.slice(1);
-      let { damage, count, spread } = weapon;
+      let { damage, count, spread, stability } = weapon;
       console.assert(count > 0);
       console.assert(spread > 0);
+      console.assert(stability > 0);
+      const stability10 = Math.log10(stability);
       let timeout = (20 * spread ** 1.7) | 0;
-      const limit = (10 * spread ** 0.7) | 0;
+      const limit = (10 * spread ** Math.min(0.6, 0.7 - stability10 / 20)) | 0;
       while (--count > 0 && timeout > limit)
-        timeout = Math.max(limit, timeout * 0.9) | 0;
+        timeout =
+          Math.max(limit, timeout * Math.min(0.7, 0.9 - stability10 / 5)) | 0;
       damage *= 10;
-      damage += 40 + count * 5;
+      damage += 40;
+      damage /= spread ** Math.max(0.9, 1.2 - stability10);
+      damage += count;
       this.defer_push_array(
         o,
         "effects",
@@ -433,12 +439,16 @@ export const sync_player_weapon = makeSystem(
         ),
         Effect.trigger(
           Trigger.spawn_children(
-            ...[...vibRange(spread)].map(
-              (j, i) =>
+            ...[...range(spread)].map(
+              (i) =>
                 ({
                   tag_weapon: true,
                   parent_trigger: withTriggerState(
-                    new Timer(timeout, ((i / spread) * timeout) | 0),
+                    new Timer(
+                      timeout,
+                      ((i / spread) * timeout * (stability / (stability + 1))) |
+                        0
+                    ),
                     function* ({ position }) {
                       if (!this.next()) return;
                       yield Trigger.spawn(
@@ -446,7 +456,11 @@ export const sync_player_weapon = makeSystem(
                           {
                             position: { ...position! },
                             velocity: {
-                              x: spread > 1 ? (j + 0.5) / spread - 0.5 : 0,
+                              x:
+                                spread > 1
+                                  ? (Math.random() - 0.5) *
+                                    Math.max(0, Math.log10(spread))
+                                  : 0,
                               y: -2,
                             },
                             scale: 0.2,

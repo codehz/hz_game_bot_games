@@ -73,6 +73,7 @@ export class GameContent extends CustomHTMLElement {
         count: 1,
         damage: 1,
         spread: 1,
+        stability: 1,
       },
     })
   );
@@ -183,7 +184,7 @@ export class GameContent extends CustomHTMLElement {
             yield Trigger.spawn(
               spawner.powerup(
                 position!,
-                randomSelect(["count", "damage", "spread"]),
+                randomSelect(["count", "damage", "spread", "stability"]),
                 atlas
               )
             );

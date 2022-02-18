@@ -66,6 +66,5 @@ export function vibRange(to: number) {
     reversed.push(orig.shift()!);
   }
   reversed.reverse();
-  console.log(to, reversed);
   return reversed;
 }

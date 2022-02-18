@@ -223,7 +223,7 @@ export function ufo(
 
 export function powerup(
   position: Vec2,
-  kind: "count" | "damage" | "spread",
+  kind: "count" | "damage" | "spread" | "stability",
   text_atlas: TextureAtlas
 ): TaggedPartialComponents<
   | "position"
@@ -249,6 +249,9 @@ export function powerup(
       break;
     case "spread":
       atlas = text_atlas.get("powerupGreen_bolt")!;
+      break;
+    case "stability":
+      atlas = text_atlas.get("powerupYellow_bolt")!;
       break;
   }
   return {

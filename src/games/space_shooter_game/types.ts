@@ -138,8 +138,9 @@ export interface Components {
     count: number;
     damage: number;
     spread: number;
+    stability: number;
   };
-  event_player_upgrade_weapon: "count" | "damage" | "spread" | "reset";
+  event_player_upgrade_weapon: "count" | "damage" | "spread" | "stability" | "reset";
   player_overlay: number;
   animate: {
     target: Partial<PickByType<Components, number>>;
