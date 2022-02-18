@@ -246,8 +246,7 @@ export class GameContent extends CustomHTMLElement {
         this.#player.position!,
         atlas.get("ufoBlue")!,
         atlas.get("laserBlue08")!,
-        atlas.get("laserBlue07")!,
-        atlas.get("laserBlue08")!
+        atlas.get("laserBlue07")!
       )
     );
   }

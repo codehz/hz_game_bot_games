@@ -114,7 +114,6 @@ export function enemy<
 export function ufo(
   position: Vec2,
   ufoAtlas: AtlasDescriptor,
-  dieAtlas: AtlasDescriptor,
   bulletAtlas: AtlasDescriptor,
   bulletDieAtlas: AtlasDescriptor
 ): TaggedPartialComponents<
@@ -129,7 +128,6 @@ export function ufo(
   | "life"
   | "team"
   | "hitbox"
-  // | "die_trigger"
   | "collision_effects"
   | "spawn_children"
   | "tracking_player",
