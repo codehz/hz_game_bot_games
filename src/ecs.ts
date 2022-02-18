@@ -84,12 +84,6 @@ export class View<C extends Record<string, any>, R extends ViewKey<C>>
   }
 }
 
-type AutoProp<T extends Record<string, any>> = {
-  readonly [K in `$${keyof T & string}`]: K extends `$${infer RK}`
-    ? T[RK]
-    : never;
-};
-
 export type Taggable<S extends string = string> = {
   [key in `tag_${S}`]?: true;
 };
@@ -108,7 +102,6 @@ export default class World<
   C extends Record<string, any>,
   R extends Record<string, any>
 > extends Emitter {
-  #template: C;
   #resource: R;
   #entities: Map<object, EntityProxy<C>> = new Map();
   #views: ViewLike[] = [];
@@ -117,9 +110,8 @@ export default class World<
   } = {};
   #deferred: Function[] = [];
 
-  constructor(template: C, resource: R) {
+  constructor(resource: R) {
     super();
-    this.#template = template;
     this.#resource = resource;
   }
 
@@ -146,18 +138,10 @@ export default class World<
     },
     get: (target, key) => {
       if (typeof key == "symbol") return undefined;
-      if (key.startsWith("$")) {
-        key = key.slice(1);
-        if (key in target) return Reflect.get(target, key);
-        const ret = structuredClone(this.#template[key]);
-        Reflect.set(target, key, ret);
-        for (const view of this.#index(key)) view.add_component(target, key);
-        return ret;
-      } else return Reflect.get(target, key);
+      return Reflect.get(target, key);
     },
     set: (target, key, value) => {
       if (typeof key == "symbol") return false;
-      if (key.startsWith("$")) throw new TypeError("readonly view");
       console.assert(value != null);
       if (value == null) {
         if (key in target) {
@@ -177,7 +161,6 @@ export default class World<
     },
     deleteProperty: (target, key) => {
       if (typeof key == "symbol") return false;
-      if (key.startsWith("$")) throw new TypeError("readonly view");
       if (key in target) {
         Reflect.deleteProperty(target, key);
         for (const view of this.#index(key)) view.remove_component(target, key);
@@ -351,7 +334,7 @@ export function sameEntity(a: object) {
   return (b: object) => getRawObject(a) == getRawObject(b);
 }
 
-export type EntityProxy<C> = Partial<C> & AutoProp<C> & Taggable;
+export type EntityProxy<C> = Partial<C> & Taggable;
 export type System<I = void> = (input: I) => void;
 export type GenericSystemBuilder<C, R, I = void, P extends any[] = []> = (
   world: World<C, R>,

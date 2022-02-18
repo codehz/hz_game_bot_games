@@ -16,11 +16,11 @@ import loading from "./loader.js";
 import World from "/js/ecs.js";
 import { randomSelect, Timer } from "/js/utils.js";
 import {
-  defaults,
   resource,
   withTriggerState,
   Trigger,
   Effect,
+  Components,
 } from "./types.js";
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
@@ -58,7 +58,7 @@ export class GameContent extends CustomHTMLElement {
   @id("canvas")
   canvas!: GameCanvas;
 
-  #world = new World(defaults, resource);
+  #world = new World<Components, typeof resource>(resource);
 
   #player = this.#world.add(
     spawner.player({

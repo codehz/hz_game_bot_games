@@ -177,53 +177,6 @@ export interface Components {
 export type PartialComponent<S extends keyof Components> = Pick<Components, S> &
   Partial<Components>;
 
-export const defaults: Components = {
-  parent: null as any,
-  parent_trigger: null as any,
-  children: [],
-  spawn_children: [],
-  position: { x: 0, y: 0 },
-  ghost_position: { x: 0, y: 0 },
-  velocity: { x: 0, y: 0 },
-  velocity_limit: 0,
-  atlas: null as any,
-  overlay: null as any,
-  player_model: {
-    color: "green",
-    shape: 1,
-  },
-  event_player_set_overlay: 1,
-  player_weapon: null as any,
-  event_player_upgrade_weapon: null as any,
-  player_overlay: 0,
-  animate: {
-    target: {},
-    step: 0,
-  },
-  event_crash: "crash",
-  rotate: 0,
-  auto_rotate: 0,
-  scale: 0,
-  opacity: 0,
-  team: "NATURAL",
-  hitbox: { halfwidth: 0, halfheight: 0 },
-  life: 0,
-  max_life: 0,
-  keep_alive: 0,
-  die_trigger: null as any,
-  dying: "unknown",
-  tracking_player: null as any,
-  random_walking: {
-    timeout: 0,
-    timeout_initial: 0,
-    rate: 0,
-    edge: 0,
-  },
-  collision_filter: null as any,
-  collision_effects: [],
-  effects: [],
-};
-
 export type Resource = {
   height_limit: number;
   ghost_target?: Vec2;

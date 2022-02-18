@@ -1,12 +1,12 @@
 import World from "./ecs.js";
 
-const world = new World(
+const world = new World<
   {
-    position: { x: 0, y: 0 },
-    velocity: { x: 0, y: 0 },
+    position: { x: number; y: number };
+    velocity: { x: number; y: number };
   },
   {}
-);
+>({});
 
 const pv = world.view("position");
 
@@ -14,7 +14,8 @@ const obj = world.add();
 
 console.log("before", ...pv);
 
-obj.$position.x = 1;
+world.defer_add_component(obj, "position", { x: 1, y: 1 });
+world.sync();
 
 console.log("set $", ...pv);
 
