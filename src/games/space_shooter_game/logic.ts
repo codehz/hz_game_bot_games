@@ -12,7 +12,7 @@ import {
 } from "./types.js";
 import { sameEntity } from "/js/ecs.js";
 import { TextureAtlas } from "/js/atlas.js";
-import { range, Timer } from "/js/utils.js";
+import { range, Timer, vibRange } from "/js/utils.js";
 import * as spawner from "./spawner.js";
 
 export const spawn_children = makeSystem(["spawn_children"], function (view) {
@@ -419,9 +419,10 @@ export const sync_player_weapon = makeSystem(
       let { damage, count, spread } = weapon;
       console.assert(count > 0);
       console.assert(spread > 0);
-      let timeout = (20 * Math.sqrt(spread)) | 0;
-      while (--count > 0 && timeout > 10)
-        timeout = Math.max(5, timeout * 0.9) | 0;
+      let timeout = (20 * spread ** 1.7) | 0;
+      const limit = (10 * spread ** 0.7) | 0;
+      while (--count > 0 && timeout > limit)
+        timeout = Math.max(limit, timeout * 0.9) | 0;
       damage *= 10;
       damage += 40 + count * 5;
       this.defer_push_array(
@@ -432,12 +433,12 @@ export const sync_player_weapon = makeSystem(
         ),
         Effect.trigger(
           Trigger.spawn_children(
-            ...[...range(spread)].map(
-              (i) =>
+            ...[...vibRange(spread)].map(
+              (j, i) =>
                 ({
                   tag_weapon: true,
                   parent_trigger: withTriggerState(
-                    new Timer(timeout),
+                    new Timer(timeout, ((i / spread) * timeout) | 0),
                     function* ({ position }) {
                       if (!this.next()) return;
                       yield Trigger.spawn(
@@ -445,7 +446,7 @@ export const sync_player_weapon = makeSystem(
                           {
                             position: { ...position! },
                             velocity: {
-                              x: spread > 1 ? (i + 0.5) / spread - 0.5 : 0,
+                              x: spread > 1 ? (j + 0.5) / spread - 0.5 : 0,
                               y: -2,
                             },
                             scale: 0.2,

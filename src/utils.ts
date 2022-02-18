@@ -57,3 +57,15 @@ export function* range(to: number) {
 export function randomSelect<T>(arr: T[]): T {
   return arr[(Math.random() * arr.length) | 0];
 }
+
+export function vibRange(to: number) {
+  const orig = [...range(to)];
+  const reversed: number[] = [];
+  while (orig.length) {
+    orig.reverse();
+    reversed.push(orig.shift()!);
+  }
+  reversed.reverse();
+  console.log(to, reversed);
+  return reversed;
+}
