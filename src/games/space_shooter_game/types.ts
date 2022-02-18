@@ -68,7 +68,12 @@ export function processTriggerResult(
   } else if (result.type == "filter_children") {
     target.children
       ?.filter((child) => !result.filter(child))
-      .forEach((child) => world.defer_update(child, { dying: result.reason }));
+      .forEach((child) =>
+        world.defer_update(child, {
+          dying: result.reason,
+          position: target.position ?? { x: 0, y: 0 },
+        })
+      );
   } else if (result.type == "spawn_children") {
     world.defer_push_array(target, "spawn_children", ...result.templates);
   } else if (result.type == "action") {

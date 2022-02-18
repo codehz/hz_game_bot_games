@@ -141,16 +141,17 @@ export const draw_health = makePureSystem(function (
   ctx.restore();
 });
 
-export const debug_entities = makePureSystem(function (
-  ctx: CanvasRenderingContext2D
-) {
-  const count = this.entitiesCount;
-  ctx.save();
-  ctx.strokeStyle = "#777";
-  ctx.fillStyle = "white";
-  ctx.font = "4px 'kenvector future'";
-  ctx.textBaseline = "hanging";
-
-  outlineText(ctx, `ENTITIES: ${count}`, 5, 10);
-  ctx.restore();
-});
+export const debug_entities = makeSystem(
+  ["dying"],
+  function (view, ctx: CanvasRenderingContext2D) {
+    const count = this.entitiesCount;
+    ctx.save();
+    ctx.strokeStyle = "#777";
+    ctx.fillStyle = "white";
+    ctx.font = "4px 'kenvector future'";
+    ctx.textBaseline = "hanging";
+    outlineText(ctx, `ENTITIES: ${count}`, 5, 10);
+    outlineText(ctx, `DYING: ${view.size}`, 5, 15);
+    ctx.restore();
+  }
+);

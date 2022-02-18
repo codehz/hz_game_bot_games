@@ -49,6 +49,10 @@ export class View<C extends Record<string, any>, R extends ViewKey<C>>
     for (const item of this.#data) return item;
   }
 
+  get size() {
+    return this.#data.size;
+  }
+
   #checked_add(obj: any) {
     if (
       this.#required.every((key) => key in obj) &&
