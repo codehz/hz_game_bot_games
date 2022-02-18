@@ -2,7 +2,6 @@ import {
   withTriggerState,
   PartialComponent,
   Trigger,
-  TaggedComponents,
   Vec2,
   Effect,
   TaggedPartialComponents,
