@@ -4,8 +4,10 @@ import {
   OurEntity,
   OurWorld,
   processTrigger,
+  Team,
   Trigger,
 } from "./types.js";
+import { sameEntity } from "/js/ecs.js";
 import { TextureAtlas } from "/js/atlas.js";
 
 export const spawn_children = makeSystem(["spawn_children"], function (view) {
@@ -26,14 +28,21 @@ export const run_parent_trigger = makeSystem(
   }
 );
 
+export const cleanup_parent = makeSystem(["dying", "parent"], function (view) {
+  for (const o of view) {
+    this.defer_remove_component(o, "parent");
+    this.defer_filter_array(o.parent, "children", sameEntity(o));
+  }
+});
+
 export const cleanup_children = makeSystem(
   ["dying", "children"],
   function (view) {
     for (const o of view) {
       this.defer_remove_component(o, "children");
       for (const child of o.children) {
-        this.defer_update(child, { dying: o.dying, position: o.position });
         this.defer_remove_component(child, "parent");
+        this.defer_update(child, { dying: o.dying, position: o.position });
       }
     }
   }
@@ -241,9 +250,25 @@ export const clean_range = makeSystem(
   }
 );
 
-export const collision_detection = (world: OurWorld) => {
-  const receiver = world.view("position", "hitbox", "team", "life");
-  const sender = world.view("position", "hitbox", "team", "damage");
+function general_collision_detection(
+  world: OurWorld,
+  receive_team: Team,
+  send_teams: Team[]
+) {
+  const receiver = world.view(
+    "position",
+    "hitbox",
+    "team",
+    "tag_collision_receiver",
+    ({ team }) => team == receive_team
+  );
+  const sender = world.view(
+    "position",
+    "hitbox",
+    "team",
+    "collision_effects",
+    ({ team }) => send_teams.includes(team)
+  );
   return () => {
     for (const a of receiver) {
       const {
@@ -262,10 +287,24 @@ export const collision_detection = (world: OurWorld) => {
         const [y_min2, y_max2] = [y - halfheight, y + halfheight];
         if (x_max < x_min2 || x_min > x_max2) continue;
         if (y_max < y_min2 || y_min > y_max2) continue;
-        a.life -= b.damage;
+        world.defer_push_array(a, "effects", ...b.collision_effects);
         world.get(b)!.dying = "self destructure";
       }
     }
+  };
+}
+
+export const collision_detection = (world: OurWorld) => {
+  const player_side = general_collision_detection(world, "FRIENDLY", [
+    "HOSTILE",
+    "NATURAL",
+  ]);
+  const hostile_side = general_collision_detection(world, "HOSTILE", [
+    "FRIENDLY",
+  ]);
+  return () => {
+    player_side();
+    hostile_side();
   };
 };
 
@@ -325,3 +364,25 @@ export const random_walking = makeSystem(
     }
   }
 );
+
+export const apply_effects = makeSystem(["effects"], function (view) {
+  for (const o of view) {
+    if (o.effects.length == 0) continue;
+    const effect = o.effects.shift()!;
+    if (effect.type == "damage")
+      this.defer_update_by(o, {
+        life(old) {
+          return old - effect.value;
+        },
+      });
+    else if (effect.type == "filter_children") {
+      if (o.children != null)
+        o.children
+          .filter((child) => !effect.filter(child))
+          .forEach((child) =>
+            this.defer_update(child, { dying: "removed by effect" })
+          );
+    } else if (effect.type == "spawn_children")
+      this.defer_push_array(o, "spawn_children", ...effect.templates);
+  }
+});

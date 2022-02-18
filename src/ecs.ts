@@ -1,3 +1,4 @@
+import type { PickByType, UpdateMapped } from "/js/tsutils.js";
 import Emitter from "/js/emit.js";
 
 export interface ViewLike {
@@ -11,7 +12,9 @@ export type ViewKey<T> =
   | ((string & keyof T) | `tag_${string}`)
   | `-${(string & keyof T) | `tag_${string}`}`;
 
-type MixOptional<T, S extends ViewKey<T>> = Omit<
+export type ViewFilter<T> = (obj: T) => boolean;
+
+export type MixOptional<T, S extends ViewKey<T>> = Omit<
   Partial<T> & Pick<T, S extends keyof T ? S : never>,
   S extends `-${infer N}` ? N : never
 >;
@@ -21,12 +24,17 @@ export class View<C extends Record<string, any>, R extends ViewKey<C>>
 {
   #required: string[] = [];
   #negative: string[] = [];
+  #additional: ViewFilter<MixOptional<C, R>>[] = [];
   #data: Set<MixOptional<C, R>> = new Set();
 
-  constructor(...inputs: R[]) {
+  constructor(...inputs: (R | ViewFilter<MixOptional<C, R>>)[]) {
     for (const name of inputs)
-      if (name.startsWith("-")) this.#negative.push(name.slice(1));
-      else this.#required.push(name);
+      if (typeof name == "string") {
+        if (name.startsWith("-")) this.#negative.push(name.slice(1));
+        else this.#required.push(name);
+      } else {
+        this.#additional.push(name);
+      }
   }
 
   get interests() {
@@ -44,7 +52,8 @@ export class View<C extends Record<string, any>, R extends ViewKey<C>>
   #checked_add(obj: any) {
     if (
       this.#required.every((key) => key in obj) &&
-      this.#negative.every((key) => !(key in obj))
+      this.#negative.every((key) => !(key in obj)) &&
+      this.#additional.every((f) => f(obj))
     )
       this.#data.add(obj);
   }
@@ -217,10 +226,51 @@ export default class World<
     }
   }
 
+  defer_push_array<K extends keyof PickByType<C, any[]>>(
+    obj: object,
+    key: K,
+    ...values: C[K] extends (infer V)[] ? V[] : never
+  ) {
+    if (values.length == 0) return;
+    const cache = this.get(obj)!;
+    console.assert(cache != null);
+    this.#deferred.push(() => {
+      const orig = cache[key] ?? ([] as C[K]);
+      // @ts-ignore
+      cache[key] = [...orig, ...values];
+    });
+  }
+
+  defer_filter_array<K extends keyof PickByType<C, any[]>>(
+    obj: object,
+    key: K,
+    filter: C[K] extends (infer V)[] ? (target: V) => boolean : never
+  ) {
+    if (!(key in obj)) return;
+    const cache = this.get(obj)!;
+    console.assert(cache != null);
+    this.#deferred.push(() => {
+      const orig = cache[key]!;
+      // @ts-ignore
+      cache[key] = orig.filter(filter);
+    });
+  }
+
   defer_update(obj: object, value: Partial<C> & Taggable) {
     const cache = this.get(obj)!;
     console.assert(cache != null);
     this.#deferred.push(() => Object.assign(cache, value));
+  }
+
+  defer_update_by(obj: object, value: Partial<UpdateMapped<C>>) {
+    const cache = this.get(obj)!;
+    console.assert(cache != null);
+    this.#deferred.push(() => {
+      for (const key in value) {
+        // @ts-ignore
+        if (key in cache) cache[key] = value[key](cache[key]);
+      }
+    });
   }
 
   defer_remove_component(
@@ -250,7 +300,9 @@ export default class World<
     this.#deferred.splice(0).forEach((f) => f());
   }
 
-  view<V extends ViewKey<C>>(...keys: V[]): View<C, V> {
+  view<V extends ViewKey<C>>(
+    ...keys: (V | ViewFilter<MixOptional<C, V>>)[]
+  ): View<C, V> {
     const ret = new View<C, V>(...keys);
     this.view_by(ret);
     return ret;
@@ -273,6 +325,10 @@ export default class World<
       }
     }
   }
+}
+
+export function sameEntity(a: object) {
+  return (b: object) => getRawObject(a) == getRawObject(b);
 }
 
 export type EntityProxy<C> = Partial<C> & AutoProp<C> & Taggable;

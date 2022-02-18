@@ -15,7 +15,7 @@ import GameCanvas from "/js/canvas.js";
 import loading from "./loader.js";
 import World from "/js/ecs.js";
 import { Timer } from "/js/utils.js";
-import { defaults, resource, withTriggerState, Trigger } from "./types.js";
+import { defaults, resource, withTriggerState, Trigger, Effect } from "./types.js";
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
 import * as spawner from "./spawner.js";
@@ -74,7 +74,7 @@ export class GameContent extends CustomHTMLElement {
               scale: 0.2,
               atlas: atlas.get("laserBlue01")!,
               keep_alive: 100,
-              damage: 50,
+              collision_effects: [Effect.damage(50)],
               team: "FRIENDLY",
               hitbox: { halfwidth: 0.5, halfheight: 3 },
             },
@@ -99,6 +99,7 @@ export class GameContent extends CustomHTMLElement {
 
   #spawn_children = logic.spawn_children(this.#world);
   #run_parent_trigger = logic.run_parent_trigger(this.#world);
+  #cleanup_parent = logic.cleanup_parent(this.#world);
   #cleanup_children = logic.cleanup_children(this.#world);
   #attach_player_atlas = logic.attach_player_atlas(this.#world);
   #attach_player_overlay = logic.attach_player_overlay(this.#world);
@@ -119,6 +120,7 @@ export class GameContent extends CustomHTMLElement {
   #clean_lowlife = logic.clean_lowlife(this.#world);
   #tracking_player = logic.tracking_player(this.#world, this.#player);
   #random_walking = logic.random_walking(this.#world);
+  #apply_effects = logic.apply_effects(this.#world);
   #rendering_sprite = rendering.sprite(this.#world, sheet);
   #rendering_bullet = rendering.bullet(this.#world, sheet);
   #draw_overlay = rendering.overlay(this.#world, sheet);
@@ -169,7 +171,7 @@ export class GameContent extends CustomHTMLElement {
                 keep_alive: 500,
                 team: "HOSTILE",
                 hitbox: { halfwidth: 0.5, halfheight: 3 },
-                damage: 10,
+                collision_effects: [Effect.damage(10)],
                 tracking_player: {
                   range: 100,
                   rate: 0.1,
@@ -216,12 +218,14 @@ export class GameContent extends CustomHTMLElement {
     this.#clean_range();
     this.#collision_detection();
     this.#clean_lowlife();
+    this.#cleanup_parent();
     this.#cleanup_children();
     this.#clean_dying();
     this.#spawn_enemy();
     this.#calc_rotate();
     this.#tracking_player();
     this.#random_walking();
+    this.#apply_effects();
 
     this.#world.sync();
   }

@@ -3,24 +3,16 @@ import type {
   EntityProxy,
   GenericSystemBuilder,
   HasTag,
+  MixOptional,
   Taggable,
   View,
+  ViewFilter,
   ViewKey,
 } from "/js/ecs.js";
 import type World from "/js/ecs.js";
+import type { BuilderUnion, PickByType } from "/js/tsutils.js";
 
 export type Team = "NATURAL" | "FRIENDLY" | "HOSTILE";
-
-export type TriggerResult =
-  | {
-      type: "spawn";
-      template: Partial<TaggableComponents>;
-    }
-  | {
-      type: "update";
-      template: Partial<TaggableComponents>;
-    }
-  | { type: "remove"; components: keyof Partial<TaggableComponents> };
 
 export interface Trigger<
   State = void,
@@ -30,18 +22,18 @@ export interface Trigger<
 }
 
 export namespace Trigger {
-  export function spawn(template: Partial<TaggableComponents>): TriggerResult {
-    return { type: "spawn", template };
+  export function spawn(template: Partial<TaggableComponents>) {
+    return { type: "spawn", template } as const;
   }
-  export function update(template: Partial<TaggableComponents>): TriggerResult {
-    return { type: "update", template };
+  export function update(template: Partial<TaggableComponents>) {
+    return { type: "update", template } as const;
   }
-  export function remove(
-    components: keyof Partial<TaggableComponents>
-  ): TriggerResult {
-    return { type: "remove", components };
+  export function remove(components: keyof Partial<TaggableComponents>) {
+    return { type: "remove", components } as const;
   }
 }
+
+export type TriggerResult = BuilderUnion<typeof Trigger>;
 
 export function withTriggerState<
   State,
@@ -67,14 +59,24 @@ export function processTrigger(
   }
 }
 
+export const Effect = Object.freeze({
+  damage(value: number) {
+    return { type: "damage", value } as const;
+  },
+  filter_children(filter: (obj: Partial<TaggableComponents>) => boolean) {
+    return { type: "filter_children", filter } as const;
+  },
+  spawn_children(...templates: Omit<Partial<TaggableComponents>, "parent">[]) {
+    return { type: "spawn_children", templates } as const;
+  },
+});
+
+export type Effect = BuilderUnion<typeof Effect>;
+
 export interface Vec2 {
   x: number;
   y: number;
 }
-
-type PickByType<T, Value> = {
-  [P in keyof T as T[P] extends Value ? P : never]: T[P];
-};
 
 export interface Components {
   parent: Partial<TaggableComponents>;
@@ -110,7 +112,6 @@ export interface Components {
   hitbox: { halfwidth: number; halfheight: number };
   life: number;
   max_life: number;
-  damage: number;
   keep_alive: number;
   die_trigger: Trigger;
   dying: string;
@@ -124,6 +125,8 @@ export interface Components {
     rate: number;
     edge: number;
   };
+  collision_effects: Effect[];
+  effects: Effect[];
 }
 
 export type PartialComponent<S extends keyof Components> = Pick<Components, S> &
@@ -159,7 +162,6 @@ export const defaults: Components = {
   hitbox: { halfwidth: 0, halfheight: 0 },
   life: 0,
   max_life: 0,
-  damage: 0,
   keep_alive: 0,
   die_trigger: null as any,
   dying: "unknown",
@@ -170,6 +172,8 @@ export const defaults: Components = {
     rate: 0,
     edge: 0,
   },
+  collision_effects: [],
+  effects: [],
 };
 
 export type Resource = {
@@ -186,6 +190,11 @@ export type TaggableComponents<S extends string = string> = Components &
 
 export type TaggedComponents<S extends string = string> = Components &
   HasTag<S>;
+
+export type TaggedPartialComponents<
+  S extends keyof Components = keyof Components,
+  T extends string = string
+> = PartialComponent<S> & HasTag<T>;
 
 export type OurEntity = EntityProxy<Components>;
 
@@ -209,7 +218,7 @@ export function makeSystem<
   I = void,
   P extends any[] = []
 >(
-  interests: R[],
+  interests: (R | ViewFilter<MixOptional<Components, R>>)[],
   f: (
     this: World<Components, Resource>,
     view: View<Components, R>,

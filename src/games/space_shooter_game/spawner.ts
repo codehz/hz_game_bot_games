@@ -4,13 +4,21 @@ import {
   Trigger,
   TaggedComponents,
   Vec2,
+  Effect,
+  TaggedPartialComponents,
 } from "./types.js";
 import { AtlasDescriptor } from "/js/atlas.js";
 import { Timer } from "/js/utils.js";
 
 export function bullet<
   Bullet extends PartialComponent<
-    "position" | "velocity" | "hitbox" | "damage" | "team" | "scale" | "atlas"
+    | "position"
+    | "velocity"
+    | "hitbox"
+    | "collision_effects"
+    | "team"
+    | "scale"
+    | "atlas"
   >,
   DieSpawn extends PartialComponent<
     "keep_alive" | "scale" | "atlas"
@@ -18,8 +26,7 @@ export function bullet<
 >(
   o: Bullet,
   die_spawn?: DieSpawn
-): Bullet &
-  Pick<TaggedComponents<"bullet">, "opacity" | "rotate" | "tag_bullet"> {
+): Bullet & TaggedPartialComponents<"opacity" | "rotate", "bullet"> {
   return {
     tag_bullet: true,
     opacity: 1,
@@ -46,18 +53,18 @@ export function player<
   player: T,
   ...weapons: Trigger[]
 ): T &
-  Pick<
-    TaggedComponents<"player" | "crashable">,
+  TaggedPartialComponents<
     | "opacity"
     | "max_life"
     | "rotate"
     | "spawn_children"
     | "team"
-    | "damage"
-    | "tag_player"
-    | "player_overlay"
+    | "collision_effects"
+    | "player_overlay",
+    "player" | "crashable" | "collision_receiver"
   > {
   return {
+    tag_collision_receiver: true,
     tag_player: true,
     tag_crashable: true,
     spawn_children: weapons.map((parent_trigger) => ({
@@ -67,7 +74,7 @@ export function player<
     rotate: 0,
     opacity: 1,
     team: "FRIENDLY",
-    damage: player.life,
+    collision_effects: [Effect.damage(player.life)],
     max_life: player.life,
     player_overlay: 0,
     ...player,
@@ -80,11 +87,17 @@ export function enemy<
   enemy: T,
   ...weapons: Trigger[]
 ): T &
-  Pick<
-    TaggedComponents<"enemy" | "crashable">,
-    "opacity" | "max_life" | "rotate" | "spawn_children" | "team" | "damage"
+  TaggedPartialComponents<
+    | "opacity"
+    | "max_life"
+    | "rotate"
+    | "spawn_children"
+    | "team"
+    | "collision_effects",
+    "enemy" | "crashable" | "collision_receiver"
   > {
   return {
+    tag_collision_receiver: true,
     tag_enemy: true,
     tag_crashable: true,
     spawn_children: weapons.map((parent_trigger) => ({
@@ -94,7 +107,7 @@ export function enemy<
     rotate: 0,
     opacity: 1,
     team: "HOSTILE",
-    damage: enemy.life,
+    collision_effects: [Effect.damage(enemy.life)],
     max_life: enemy.life,
     ...enemy,
   };
@@ -106,7 +119,7 @@ export function ufo(
   dieAtlas: AtlasDescriptor,
   bulletAtlas: AtlasDescriptor,
   bulletDieAtlas: AtlasDescriptor
-): PartialComponent<
+): TaggedPartialComponents<
   | "position"
   | "velocity"
   | "rotate"
@@ -118,10 +131,13 @@ export function ufo(
   | "life"
   | "team"
   | "hitbox"
-  | "damage"
   | "die_trigger"
+  | "collision_effects"
+  | "spawn_children",
+  "collision_receiver"
 > {
   return {
+    tag_collision_receiver: true,
     position: structuredClone(position),
     velocity: { x: 0, y: -0.5 },
     rotate: 0,
@@ -133,7 +149,7 @@ export function ufo(
     life: 500,
     team: "FRIENDLY",
     hitbox: { halfheight: 8, halfwidth: 8 },
-    damage: 100,
+    collision_effects: [Effect.damage(100)],
     *die_trigger({ position }) {
       yield Trigger.spawn({
         position: { ...position! },
@@ -142,7 +158,7 @@ export function ufo(
         opacity: 1,
         keep_alive: 50,
         life: 50,
-        damage: 100,
+        collision_effects: [Effect.damage(100)],
         team: "FRIENDLY",
         hitbox: { halfheight: 10, halfwidth: 10 },
         atlas: dieAtlas,
@@ -170,7 +186,7 @@ export function ufo(
                 atlas: bulletAtlas,
                 team: "FRIENDLY",
                 hitbox: { halfwidth: 0.5, halfheight: 0.5 },
-                damage: 20,
+                collision_effects: [Effect.damage(20)],
                 *die_trigger({ position }) {
                   yield Trigger.spawn({
                     position: { ...position! },
