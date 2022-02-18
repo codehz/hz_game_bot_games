@@ -42,7 +42,11 @@ export const cleanup_children = makeSystem(
       this.defer_remove_component(o, "children");
       for (const child of o.children) {
         this.defer_remove_component(child, "parent");
-        this.defer_update(child, { dying: o.dying, position: o.position });
+        this.defer_update(child, {
+          dying: o.dying,
+          position: o.position,
+          rotate: o.rotate,
+        });
       }
     }
   }
@@ -205,11 +209,14 @@ export const calc_rotate = makeSystem(
   }
 );
 
-export const auto_rotate = makeSystem(["auto_rotate", "rotate"], (view) => {
-  for (const o of view) {
-    o.rotate += o.auto_rotate;
+export const auto_rotate = makeSystem(
+  ["auto_rotate", "rotate", "-dying"],
+  (view) => {
+    for (const o of view) {
+      o.rotate += o.auto_rotate;
+    }
   }
-});
+);
 
 export const clean_dying = makeSystem(
   ["dying", "position", "-tag_crashable"],
@@ -312,10 +319,13 @@ export const keep_alive = makeSystem(["keep_alive"], function (view) {
   view
     .iter()
     .filter((obj) => obj.keep_alive-- <= 0)
-    .forEach((obj) => this.defer_add_component(obj, "dying", "timeout"));
+    .forEach((obj) => {
+      this.defer_remove_component(obj, "keep_alive");
+      this.defer_add_component(obj, "dying", "timeout");
+    });
 });
 
-export const moving = makeSystem(["position", "velocity"], (view) => {
+export const moving = makeSystem(["position", "velocity", "-dying"], (view) => {
   for (const { position, velocity } of view) {
     position.x += velocity.x;
     position.y += velocity.y;
@@ -323,7 +333,7 @@ export const moving = makeSystem(["position", "velocity"], (view) => {
 });
 
 export const tracking_player = makeSystem(
-  ["tracking_player", "position", "velocity"],
+  ["tracking_player", "position", "velocity", "-dying"],
   (view, _: void, player: OurEntity) => {
     const target = player.position!;
     if (player.life! <= 0) return;

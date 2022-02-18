@@ -37,9 +37,9 @@ export type TriggerResult = BuilderUnion<typeof Trigger>;
 
 export function withTriggerState<
   State,
-  Input extends PartialComponent<"position"> = PartialComponent<"position">
->(state: State, f: Trigger<State, Input>): Trigger<void> {
-  return f.bind(state) as unknown as Trigger<void>;
+  Input extends Partial<TaggableComponents> = Partial<TaggableComponents>
+>(state: State, f: Trigger<State, Input>): Trigger<void, Input> {
+  return f.bind(state) as unknown as Trigger<void, Input>;
 }
 
 export function processTrigger(

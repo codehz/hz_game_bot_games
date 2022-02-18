@@ -35,10 +35,9 @@ export function splitImportURL(urlstr: string) {
 
 export class Timer {
   #init: number;
-  value: number;
 
-  constructor(init: number) {
-    this.value = this.#init = init;
+  constructor(init: number, public value: number = init) {
+    this.#init = init;
   }
 
   next() {
@@ -49,4 +48,8 @@ export class Timer {
       return false;
     }
   }
+}
+
+export function* range(to: number) {
+  for (let i = 0; i < to; i++) yield i;
 }

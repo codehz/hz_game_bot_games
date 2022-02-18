@@ -155,11 +155,21 @@ export default class World<
       if (typeof key == "symbol") return false;
       if (key.startsWith("$")) throw new TypeError("readonly view");
       console.assert(value != null);
-      const skipUpdate = key in target;
-      Reflect.set(target, key, value);
-      if (!skipUpdate)
-        for (const view of this.#index(key)) view.add_component(target, key);
-      return true;
+      if (value == null) {
+        if (key in target) {
+          Reflect.deleteProperty(target, key);
+          for (const view of this.#index(key))
+            view.remove_component(target, key);
+          return true;
+        }
+        return false;
+      } else {
+        const skipUpdate = key in target;
+        Reflect.set(target, key, value);
+        if (!skipUpdate)
+          for (const view of this.#index(key)) view.add_component(target, key);
+        return true;
+      }
     },
     deleteProperty: (target, key) => {
       if (typeof key == "symbol") return false;

@@ -64,12 +64,12 @@ export class GameContent extends CustomHTMLElement {
         scale: 0.2,
         player_model: { color: "blue", shape: 1 },
       },
-      withTriggerState(new Timer(20), function* ({ position: { x, y } }) {
+      withTriggerState(new Timer(20), function* ({ position }) {
         if (!this.next()) return;
         yield Trigger.spawn(
           spawner.bullet(
             {
-              position: { x, y },
+              position: { ...position! },
               velocity: { x: 0, y: -2 },
               scale: 0.2,
               atlas: atlas.get("laserBlue01")!,
@@ -158,12 +158,12 @@ export class GameContent extends CustomHTMLElement {
             edge: 10,
           },
         },
-        withTriggerState(new Timer(40), function* ({ position: { x, y } }) {
+        withTriggerState(new Timer(40), function* ({ position }) {
           if (!this.next()) return;
           yield Trigger.spawn(
             spawner.bullet(
               {
-                position: { x, y },
+                position: { ...position! },
                 velocity: { x: 0, y: 1 },
                 rotate: Math.PI,
                 scale: 0.2,
@@ -232,10 +232,10 @@ export class GameContent extends CustomHTMLElement {
 
   @attach("frame", "#canvas")
   on_frame(ctx: CanvasRenderingContext2D) {
+    this.#rendering_bullet(ctx);
     this.#rendering_sprite(ctx);
     this.#draw_overlay(ctx);
-    this.#rendering_bullet(ctx);
-    // this.#debug_hitbox(ctx);
+    this.#debug_hitbox(ctx);
     this.#debug_entities(ctx);
     this.#draw_helth(ctx);
   }
