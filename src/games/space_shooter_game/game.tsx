@@ -11,6 +11,7 @@ import {
   mount,
   listen_external,
   listen_at,
+  listen,
 } from "/js/ce.js";
 import GameCanvas from "/js/canvas.js";
 import loading from "./loader.js";
@@ -23,11 +24,17 @@ import {
   Effect,
   Components,
   Resource,
+  OurEntity,
 } from "./types.js";
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
 import * as spawner from "./spawner.js";
-import { DialogForm, SizedContainer } from "/js/common.js";
+import {
+  DialogForm,
+  FieldSet,
+  SizedContainer,
+  StyledButton,
+} from "/js/common.js";
 
 const { assets, sheet, atlas } = await loading;
 
@@ -136,6 +143,9 @@ export class GameContentInner extends CustomHTMLElement {
     this.#world.on("player_died", () => {
       this.#state = "gameover";
       this.emit("gameover", 0);
+    });
+    queueMicrotask(() => {
+      this.emit("setup_player", this.#player);
     });
   }
 
@@ -339,10 +349,102 @@ export class GameContentInner extends CustomHTMLElement {
   }
 }
 
+@customElement("cheat-menu")
+@shadow(
+  <>
+    <StyledButton id="open">Cheat menu</StyledButton>
+    <DialogForm id="form" title="Cheat menu" type="form"></DialogForm>
+  </>
+)
+@css`
+  :host {
+    font-family: "kenvector future thin";
+    user-select: none;
+  }
+
+  .prop {
+    display: flex;
+    gap: 5px;
+  }
+  .prop::before {
+    content: attr(data-key);
+    width: 10em;
+  }
+  .value {
+    width: 3em;
+    text-align: center;
+    background-color: #0002;
+    border-radius: 10px;
+  }
+  .btn {
+    cursor: pointer;
+    display: flex;
+    place-items: center;
+    font-size: 80%;
+    background: var(--fgcolor);
+    color: var(--bgcolor);
+    padding: 0 2px;
+    border-radius: 10px;
+  }
+  .btn::before {
+    content: attr(data-change);
+  }
+`
+class CheatMenu extends CustomHTMLElement {
+  @id("form")
+  form!: DialogForm;
+
+  player?: OurEntity;
+
+  @listen_at("click", "#open")
+  async open() {
+    if (this.player?.player_weapon == null) return;
+    try {
+      this.form.replaceChildren(
+        <FieldSet
+          class="props"
+          data-key="player_weapon"
+          title="Weapon properities"
+        >
+          {Object.entries(this.player.player_weapon).map(([key, value]) => (
+            <div class="prop" data-key={key}>
+              <div class="btn" data-change="-1" />
+              <div class="value">{value}</div>
+              <div class="btn" data-change="+1" />
+              <div class="btn" data-change="+10" />
+            </div>
+          ))}
+        </FieldSet>
+      );
+      await this.form.open();
+      for (const el of this.form.querySelectorAll("div.value")) {
+        const value = +el.textContent!;
+        const prop = el.parentElement!;
+        const props = prop.parentElement!;
+        const propkey = prop.dataset.key!;
+        const rootkey = props.dataset.key!;
+        // @ts-ignore
+        this.player![rootkey][propkey] = value;
+      }
+    } catch {}
+  }
+
+  @listen("click", ".btn")
+  on_click_btn(e: PointerEvent) {
+    const target = e.target as HTMLDivElement;
+    const prop = target.parentElement!;
+    const value = prop.querySelector(".value")!;
+    const change = target.dataset.change!;
+    value.textContent = "" + Math.max(0, +value.textContent! + +change);
+  }
+}
+
 @customElement("game-content")
 @shadow(
   <>
-    <DialogForm id="paused_screen" type="dialog" title="游戏暂停"></DialogForm>
+    <DialogForm id="paused_screen" type="dialog" title="游戏暂停">
+      <CheatMenu id="cheat_menu" />
+    </DialogForm>
     <DialogForm
       id="gameover_screen"
       type="dialog"
@@ -386,6 +488,9 @@ export class GameContent extends CustomHTMLElement {
   @id("gameover_screen")
   gameover_dialog!: DialogForm;
 
+  @id("cheat_menu")
+  cheat_menu!: CheatMenu;
+
   @listen_external("visibilitychange", document)
   on_visibilitychange() {
     if (document.visibilityState == "hidden") {
@@ -413,5 +518,10 @@ export class GameContent extends CustomHTMLElement {
       .open()
       .catch(() => {})
       .finally(() => this.replaceWith(<game-content />));
+  }
+
+  @attach("setup_player", "#core")
+  setup_player(player: OurEntity) {
+    this.cheat_menu.player = player;
   }
 }

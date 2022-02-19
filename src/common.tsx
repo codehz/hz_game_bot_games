@@ -138,6 +138,35 @@ export class StyledButton extends CustomHTMLElement {
   }
 }
 
+@customElement("field-set")
+@shadow(
+  <>
+    <h3 id="title" />
+    <slot />
+  </>
+)
+@css`
+  :host {
+    display: contents;
+  }
+  h3 {
+    margin: 0;
+    margin-bottom: 10px;
+    position: sticky;
+    top: 0;
+  }
+`
+export class FieldSet extends CustomHTMLElement {
+  @id("title")
+  title_el!: HTMLElement;
+
+  @watch("title")
+  @mount
+  update_title({ title }: { title: string }) {
+    this.title_el.textContent = title;
+  }
+}
+
 @customElement("dialog-form")
 @shadow(
   <dialog id="dialog">
