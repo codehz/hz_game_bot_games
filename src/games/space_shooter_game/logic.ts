@@ -432,15 +432,14 @@ export const sync_player_weapon = makeSystem(
       console.assert(count > 0);
       console.assert(spread > 0);
       console.assert(stability > 0);
-      const stability10 = Math.log10(stability);
+      const stability2 = Math.log2(stability);
       let timeout = (20 * spread ** 1.7) | 0;
-      const limit = (10 * spread ** Math.max(0.3, 0.7 - stability10 / 20)) | 0;
+      const limit = (10 * spread ** Math.max(0.1, 0.7 - stability2 / 20)) | 0;
       while (--count > 0 && timeout > limit)
-        timeout =
-          Math.max(limit, timeout * Math.max(0.7, 0.9 - stability10 / 5)) | 0;
+        timeout = Math.max(limit, timeout * 0.9) | 0;
       damage *= 10;
       damage += 40;
-      damage /= spread ** Math.max(0.9, 1.2 - stability10 / 10);
+      damage /= spread ** Math.max(0.9, 1.2 - stability2 / 20);
       damage += count;
       this.defer_update(o, {
         player_stats: { damage, time: timeout, time_limit: limit },

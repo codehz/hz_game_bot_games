@@ -425,6 +425,7 @@ class CheatMenu extends CustomHTMLElement {
         const rootkey = props.dataset.key!;
         // @ts-ignore
         this.player![rootkey][propkey] = value;
+        this.player.event_player_upgrade_weapon = "reset";
       }
     } catch {}
   }

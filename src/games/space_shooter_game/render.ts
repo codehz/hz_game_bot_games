@@ -143,9 +143,11 @@ export const draw_health = makePureSystem(function (
     time = NaN,
     time_limit = NaN,
   } = player.player_stats ?? {};
+  const { spread = NaN } = player.player_weapon ?? {};
+  const dps = (spread / time * 60) * damage;
   outlineText(
     ctx,
-    `DMG:${damage.toFixed(1)} TIM:${time}(${time_limit})`,
+    `DMG:${damage.toFixed(1)} TIM:${time}/${time_limit}(${dps.toFixed(1)})`,
     5,
     10
   );
