@@ -268,8 +268,6 @@ export class GameContentInner extends CustomHTMLElement {
       this.#emit_altattack();
     } else if (e.code == "Escape") {
       if (this.pause()) e.preventDefault();
-    } else {
-      console.log(e.code);
     }
   }
 
