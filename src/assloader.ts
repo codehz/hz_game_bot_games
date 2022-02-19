@@ -60,7 +60,7 @@ export default class AssLoader {
             reportProgress(name);
             break;
           }
-          case ".ogg": {
+          case ".mp3": {
             const buffer = await file.async("arraybuffer");
             const audio = await ret.#audioctx.decodeAudioData(buffer);
             ret.#audios.set(filename, audio);
