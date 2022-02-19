@@ -22,6 +22,9 @@ export interface Trigger<
 }
 
 export const Trigger = Object.freeze({
+  global_event(name: string, ...payloads: any[]) {
+    return { type: "glonal_event", name, payloads } as const;
+  },
   spawn(template: Partial<TaggableComponents>) {
     return { type: "spawn", template } as const;
   },
@@ -78,6 +81,8 @@ export function processTriggerResult(
     world.defer_push_array(target, "spawn_children", ...result.templates);
   } else if (result.type == "action") {
     world.defer(target, result.action);
+  } else if (result.type == "glonal_event") {
+    world.emit(result.name, ...result.payloads);
   }
 }
 

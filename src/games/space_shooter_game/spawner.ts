@@ -58,6 +58,7 @@ export function player<
     | "spawn_children"
     | "team"
     | "collision_effects"
+    | "die_trigger"
     | "player_overlay",
     "player" | "crashable" | "collision_receiver"
   > {
@@ -75,6 +76,9 @@ export function player<
     collision_effects: [Effect.damage(player.life)],
     max_life: player.life,
     player_overlay: 0,
+    *die_trigger() {
+      yield Trigger.global_event("player_died");
+    },
     ...player,
   };
 }

@@ -21,6 +21,7 @@ import {
   Trigger,
   Effect,
   Components,
+  Resource,
 } from "./types.js";
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
@@ -62,7 +63,7 @@ export class GameContentInner extends CustomHTMLElement {
   @id("canvas")
   canvas!: GameCanvas;
 
-  #world = new World<Components, typeof resource>(resource);
+  #world = new World<Components, Resource>(resource);
 
   #player = this.#world.add(
     spawner.player({
@@ -130,6 +131,10 @@ export class GameContentInner extends CustomHTMLElement {
 
     this.#world.on("player_stopped", () => {
       this.#ghost.opacity = 0;
+    });
+    this.#world.on("player_died", () => {
+      this.#state = "gameover";
+      this.emit("gameover", 0);
     });
   }
 
@@ -263,6 +268,7 @@ export class GameContentInner extends CustomHTMLElement {
 
   @listen_external("keydown", document.body)
   on_keydown(e: KeyboardEvent) {
+    if (this.#state != "playing") return;
     if (e.code == "Space") {
       e.preventDefault();
       this.#emit_altattack();
@@ -336,6 +342,11 @@ export class GameContentInner extends CustomHTMLElement {
 @shadow(
   <>
     <DialogForm id="paused_screen" type="dialog" title="游戏暂停"></DialogForm>
+    <DialogForm
+      id="gameover_screen"
+      type="dialog"
+      title="游戏结束"
+    ></DialogForm>
     <GameContentInner id="core" />
   </>
 )
@@ -344,7 +355,10 @@ export class GameContent extends CustomHTMLElement {
   core!: GameContentInner;
 
   @id("paused_screen")
-  dialog!: DialogForm;
+  paused_dialog!: DialogForm;
+
+  @id("gameover_screen")
+  gameover_dialog!: DialogForm;
 
   @listen_external("visibilitychange", document)
   on_visibilitychange() {
@@ -356,9 +370,17 @@ export class GameContent extends CustomHTMLElement {
   @mount
   @attach("paused", "#core")
   open_paused_dialog() {
-    this.dialog
+    this.paused_dialog
       .open()
       .catch(() => {})
       .finally(() => this.core.resume());
+  }
+
+  @attach("gameover", "#core")
+  open_gameover_dialog() {
+    this.gameover_dialog
+      .open()
+      .catch(() => {})
+      .finally(() => this.replaceWith(<game-content />));
   }
 }
