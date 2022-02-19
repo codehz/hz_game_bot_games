@@ -10,6 +10,7 @@ import {
   listen_closest,
   mount,
   listen_external,
+  listen_at,
 } from "/js/ce.js";
 import GameCanvas from "/js/canvas.js";
 import loading from "./loader.js";
@@ -347,9 +348,34 @@ export class GameContentInner extends CustomHTMLElement {
       type="dialog"
       title="游戏结束"
     ></DialogForm>
+    <div id="pause_button" />
     <GameContentInner id="core" />
   </>
 )
+@css`
+  #pause_button {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    align-items: center;
+    background: white;
+    border-radius: 100%;
+    box-shadow: 0 0 5px #0003;
+  }
+
+  #pause_button::before,
+  #pause_button::after {
+    content: "";
+    height: 60%;
+    width: 20%;
+    background: black;
+  }
+`
 export class GameContent extends CustomHTMLElement {
   @id("core")
   core!: GameContentInner;
@@ -365,6 +391,11 @@ export class GameContent extends CustomHTMLElement {
     if (document.visibilityState == "hidden") {
       this.core.pause();
     }
+  }
+
+  @listen_at("click", "#pause_button")
+  on_click_pause() {
+    this.core.pause();
   }
 
   @mount
