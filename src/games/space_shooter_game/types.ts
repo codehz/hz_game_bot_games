@@ -96,6 +96,9 @@ export const Effect = Object.freeze({
   damage(value: number) {
     return { type: "damage", value } as const;
   },
+  sound(name: string) {
+    return { type: "sound", name } as const;
+  },
   trigger(trigger: TriggerResult) {
     return { type: "trigger", trigger } as const;
   },
@@ -140,7 +143,12 @@ export interface Components {
     spread: number;
     stability: number;
   };
-  event_player_upgrade_weapon: "count" | "damage" | "spread" | "stability" | "reset";
+  event_player_upgrade_weapon:
+    | "count"
+    | "damage"
+    | "spread"
+    | "stability"
+    | "reset";
   player_stats: {
     damage: number;
     time_limit: number;

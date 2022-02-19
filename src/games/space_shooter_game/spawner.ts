@@ -105,7 +105,7 @@ export function enemy<
     rotate: 0,
     opacity: 1,
     team: "HOSTILE",
-    collision_effects: [Effect.damage(enemy.life)],
+    collision_effects: [Effect.sound("lose"), Effect.damage(enemy.life)],
     max_life: enemy.life,
     ...enemy,
   };
@@ -169,7 +169,7 @@ export function ufo(
               atlas: bulletAtlas,
               team: "FRIENDLY",
               hitbox: { halfwidth: 1, halfheight: 1 },
-              collision_effects: [Effect.damage(100)],
+              collision_effects: [Effect.sound("laser2"), Effect.damage(100)],
               *die_trigger({ position }) {
                 yield Trigger.spawn({
                   position: { ...position! },
@@ -202,7 +202,7 @@ export function ufo(
               atlas: bulletAtlas,
               team: "FRIENDLY",
               hitbox: { halfwidth: 0.5, halfheight: 0.5 },
-              collision_effects: [Effect.damage(50)],
+              collision_effects: [Effect.sound("laser1"), Effect.damage(50)],
               *die_trigger({ position }) {
                 yield Trigger.spawn({
                   position: { ...position! },
@@ -268,6 +268,7 @@ export function powerup(
       return !!tag_player;
     },
     collision_effects: [
+      Effect.sound("zap"),
       Effect.trigger(Trigger.update({ event_player_upgrade_weapon: kind })),
     ],
     random_walking: {

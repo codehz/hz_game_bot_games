@@ -14,6 +14,7 @@ import { sameEntity } from "/js/ecs.js";
 import { TextureAtlas } from "/js/atlas.js";
 import { range, Timer, vibRange } from "/js/utils.js";
 import * as spawner from "./spawner.js";
+import AssLoader from "/js/assloader.js";
 
 export const spawn_children = makeSystem(["spawn_children"], function (view) {
   for (const o of view) {
@@ -385,20 +386,30 @@ export const random_walking = makeSystem(
   }
 );
 
-export const apply_effects = makeSystem(["effects"], function (view) {
-  for (const o of view) {
-    if (o.effects.length == 0) continue;
-    const effect = o.effects.shift()!;
-    if (effect.type == "damage")
-      this.defer_update_by(o, {
-        life(old) {
-          return old - effect.value;
-        },
-      });
-    else if (effect.type == "trigger")
-      processTriggerResult(this, o, effect.trigger);
+export const apply_effects = makeSystem(
+  ["effects"],
+  function (view, _: void, assets: AssLoader) {
+    for (const o of view) {
+      if (o.effects.length == 0) continue;
+      const effect = o.effects.shift()!;
+      if (effect.type == "damage")
+        this.defer_update_by(o, {
+          life(old) {
+            return old - effect.value;
+          },
+        });
+      else if (effect.type == "sound") {
+        const audio = assets.getAudio(`sfx_${effect.name}`)!;
+        const source = assets.audioctx.createBufferSource();
+        source.buffer = audio;
+        source.loop = false;
+        source.connect(assets.audioctx.destination);
+        source.start(0);
+      } else if (effect.type == "trigger")
+        processTriggerResult(this, o, effect.trigger);
+    }
   }
-});
+);
 
 export const sync_player_weapon = makeSystem(
   ["player_weapon", "event_player_upgrade_weapon", "player_model"],
@@ -464,7 +475,10 @@ export const sync_player_weapon = makeSystem(
                             },
                             scale: 0.2,
                             atlas: atlas.get(`laser${colorStr}01`)!,
-                            collision_effects: [Effect.damage(damage)],
+                            collision_effects: [
+                              Effect.sound("laser2"),
+                              Effect.damage(damage),
+                            ],
                             team: "FRIENDLY",
                             hitbox: { halfwidth: 0.5, halfheight: 3 },
                           },

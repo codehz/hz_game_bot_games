@@ -27,7 +27,7 @@ import * as logic from "./logic.js";
 import * as spawner from "./spawner.js";
 import { SizedContainer } from "/js/common.js";
 
-const { sheet, atlas } = await loading;
+const { assets, sheet, atlas } = await loading;
 
 @customElement("game-content")
 @shadow(
@@ -110,7 +110,7 @@ export class GameContent extends CustomHTMLElement {
   #clean_lowlife = logic.clean_lowlife(this.#world);
   #tracking_player = logic.tracking_player(this.#world, this.#player);
   #random_walking = logic.random_walking(this.#world);
-  #apply_effects = logic.apply_effects(this.#world);
+  #apply_effects = logic.apply_effects(this.#world, assets);
   #rendering_sprite = rendering.sprite(this.#world, sheet);
   #rendering_bullet = rendering.bullet(this.#world, sheet);
   #draw_overlay = rendering.overlay(this.#world, sheet);
@@ -162,7 +162,7 @@ export class GameContent extends CustomHTMLElement {
                   keep_alive: 500,
                   team: "HOSTILE",
                   hitbox: { halfwidth: 0.5, halfheight: 3 },
-                  collision_effects: [Effect.damage(10)],
+                  collision_effects: [Effect.sound("lose"), Effect.damage(10)],
                   tracking_player: {
                     range: 100,
                     rate: 0.1,

@@ -22,6 +22,10 @@ export default class AssLoader {
   #images = new Map<string, ImageBitmap>();
   #xmls = new Map<string, Document>();
 
+  get audioctx() {
+    return this.#audioctx;
+  }
+
   getFont(name: string) {
     return this.#fonts.get(name);
   }
