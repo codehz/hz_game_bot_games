@@ -9,7 +9,7 @@ import {
   listen_host,
   listen_closest,
   mount,
-  unmount,
+  listen_external,
 } from "/js/ce.js";
 import GameCanvas from "/js/canvas.js";
 import loading from "./loader.js";
@@ -25,11 +25,13 @@ import {
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
 import * as spawner from "./spawner.js";
-import { SizedContainer } from "/js/common.js";
+import { DialogForm, SizedContainer } from "/js/common.js";
 
 const { assets, sheet, atlas } = await loading;
 
-@customElement("game-content")
+type GameState = "paused" | "playing" | "gameover";
+
+@customElement("game-content-inner")
 @shadow(
   <SizedContainer>
     <GameCanvas id="canvas" />
@@ -54,7 +56,9 @@ const { assets, sheet, atlas } = await loading;
     background: #000;
   }
 `
-export class GameContent extends CustomHTMLElement {
+export class GameContentInner extends CustomHTMLElement {
+  #state: GameState = "paused";
+
   @id("canvas")
   canvas!: GameCanvas;
 
@@ -195,6 +199,7 @@ export class GameContent extends CustomHTMLElement {
 
   @attach("prepare", "#canvas")
   on_prepare() {
+    if (this.#state != "playing") return;
     if (this.#offset && this.#current && this.#world.resource.ghost_target) {
       const [dx, dy] = [
         this.#current.x - this.#offset.x,
@@ -256,16 +261,21 @@ export class GameContent extends CustomHTMLElement {
     );
   }
 
-  @listen_closest("keypress", "body")
+  @listen_external("keydown", document.body)
   on_keydown(e: KeyboardEvent) {
     if (e.code == "Space") {
       e.preventDefault();
       this.#emit_altattack();
+    } else if (e.code == "Escape") {
+      if (this.pause()) e.preventDefault();
+    } else {
+      console.log(e.code);
     }
   }
 
   @listen_host("pointerdown")
   on_click({ x, y, isPrimary }: PointerEvent) {
+    if (this.#state != "playing") return;
     if (!isPrimary) {
       this.#emit_altattack();
       return;
@@ -297,21 +307,60 @@ export class GameContent extends CustomHTMLElement {
     this.#offset = undefined;
   }
 
-  #resize = () => {
+  @listen_external("resize", window)
+  @mount
+  on_resize() {
     Object.assign(this.style, {
       width: `${window.innerWidth}px`,
       height: `${window.innerHeight}px`,
     });
-  };
-
-  @mount
-  on_connected() {
-    this.#resize();
-    window.addEventListener("resize", this.#resize);
   }
 
-  @unmount
-  on_disconnected() {
-    window.removeEventListener("resize", this.#resize);
+  pause() {
+    if (this.#state == "playing") {
+      this.#state = "paused";
+      this.emit("paused");
+      return true;
+    }
+    return false;
+  }
+
+  resume() {
+    if (this.#state == "paused") {
+      this.#state = "playing";
+      return true;
+    }
+    return false;
+  }
+}
+
+@customElement("game-content")
+@shadow(
+  <>
+    <DialogForm id="paused_screen" type="dialog" title="游戏暂停"></DialogForm>
+    <GameContentInner id="core" />
+  </>
+)
+export class GameContent extends CustomHTMLElement {
+  @id("core")
+  core!: GameContentInner;
+
+  @id("paused_screen")
+  dialog!: DialogForm;
+
+  @listen_external("visibilitychange", document)
+  on_visibilitychange() {
+    if (document.visibilityState == "hidden") {
+      this.core.pause();
+    }
+  }
+
+  @mount
+  @attach("paused", "#core")
+  open_paused_dialog() {
+    this.dialog
+      .open()
+      .catch(() => {})
+      .finally(() => this.core.resume());
   }
 }

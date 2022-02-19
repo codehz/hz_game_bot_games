@@ -138,11 +138,14 @@ export const draw_health = makePureSystem(function (
   ctx.textBaseline = "hanging";
   outlineText(ctx, "HP:", 5, 5);
   outlineText(ctx, "" + life, 57, 5);
+  const {
+    damage = NaN,
+    time = NaN,
+    time_limit = NaN,
+  } = player.player_stats ?? {};
   outlineText(
     ctx,
-    `DMG:${player.player_stats!.damage.toFixed(1)} TIM:${
-      player.player_stats!.time
-    }(${player.player_stats!.time_limit})`,
+    `DMG:${damage.toFixed(1)} TIM:${time}(${time_limit})`,
     5,
     10
   );

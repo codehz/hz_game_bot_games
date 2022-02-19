@@ -1,4 +1,4 @@
-import { EmitterMixin } from  "/js/emit.js";
+import { EmitterMixin } from "/js/emit.js";
 
 const $selector = Symbol("selector");
 const $template = Symbol("template");
@@ -12,6 +12,7 @@ const $listeners = Symbol("listeners");
 const $closest_listeners = Symbol("closest_listeners");
 const $direct_listeners = Symbol("direct_listeners");
 const $attach_listeners = Symbol("attach_listeners");
+const $external_listeners = Symbol("external_listeners");
 const $tags = Symbol("tags");
 const $frame = Symbol("frame");
 
@@ -25,7 +26,7 @@ export function cloneNode(node: Node): Node {
   return ret;
 }
 
-export declare interface CustomHTMLElement {
+export abstract class CustomHTMLElement extends EmitterMixin(HTMLElement) {
   [$tags]?: string[];
   [$selector]?: Map<string, { selector: string; all: boolean } | string>;
   [$template]?: Node;
@@ -39,10 +40,8 @@ export declare interface CustomHTMLElement {
   [$closest_listeners]?: { name: string; event: string; selector: string }[];
   [$direct_listeners]?: { name: string; event: string; selector: string }[];
   [$attach_listeners]?: { name: string; event: string; selector: string }[];
+  [$external_listeners]?: { name: string; event: string; target: Node }[];
   [$frame]?: number;
-}
-
-export abstract class CustomHTMLElement extends EmitterMixin(HTMLElement) {
   #listeners: { node: Node; event: string; listener: EventListener }[] = [];
   #attached_listeners: {
     node: CustomHTMLElement;
@@ -139,6 +138,11 @@ export abstract class CustomHTMLElement extends EmitterMixin(HTMLElement) {
         target.addEventListener(event, listener);
         this.#listeners.push({ node: target, event, listener });
       }
+    });
+    this[$external_listeners]?.forEach(({ name, event, target }) => {
+      const listener = (this as any)[name].bind(this);
+      target.addEventListener(event, listener);
+      this.#listeners.push({ node: target, event, listener });
     });
     const shadow = this[$shadow];
     if (shadow) this.shadowTemplate = cloneNode(shadow);
@@ -390,6 +394,16 @@ export const listen_closest =
   <T extends CustomHTMLElement>(target: T, key: string) => {
     let list = target[$closest_listeners] ?? [];
     target[$closest_listeners] = [...list, { event, selector, name: key }];
+  };
+
+export const listen_external =
+  (event: string, source: Node | Window) =>
+  <T extends CustomHTMLElement>(target: T, key: string) => {
+    let list = target[$external_listeners] ?? [];
+    target[$external_listeners] = [
+      ...list,
+      { event, target: source as any, name: key },
+    ];
   };
 
 export const listen_at =
