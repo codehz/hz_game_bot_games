@@ -88,6 +88,14 @@ export class GameContentInner extends CustomHTMLElement {
         spread: 1,
         stability: 1,
       },
+      shield_cooldown: 0,
+      shield_regeneration: 0,
+      player_shield: {
+        regeneration: 1,
+        cooldown: 1,
+        strengh: 1,
+        count: 1,
+      },
     })
   );
   #ghost = this.#world.add({
@@ -108,6 +116,11 @@ export class GameContentInner extends CustomHTMLElement {
   #set_player_overlay_based_on_health =
     logic.set_player_overlay_based_on_health(this.#world);
   #sync_player_weapon = logic.sync_player_weapon(this.#world, atlas);
+  #sync_player_shield = logic.sync_player_shield(this.#world);
+  #shield_regeneration = logic.shield_regeneration(this.#world);
+  #shield_cooldown = logic.shield_cooldown(this.#world);
+  #shield_spawner = logic.shield_spawner(this.#world, atlas);
+  #shield_tracking = logic.shield_tracking(this.#world);
   #play_animate = logic.play_animate(this.#world);
   #start_crash_animate = logic.start_crash_animate(this.#world);
   #limit_player = logic.limit_player(this.#world, this.#player);
@@ -204,7 +217,16 @@ export class GameContentInner extends CustomHTMLElement {
             yield Trigger.spawn(
               spawner.powerup(
                 position!,
-                randomSelect(["count", "damage", "spread", "stability"]),
+                randomSelect([
+                  "count",
+                  "damage",
+                  "spread",
+                  "stability",
+                  "regeneration",
+                  "cooldown",
+                  "strengh",
+                  "count",
+                ]),
                 atlas
               )
             );
@@ -233,6 +255,11 @@ export class GameContentInner extends CustomHTMLElement {
     this.#attach_player_overlay(atlas);
     this.#set_player_overlay_based_on_health();
     this.#sync_player_weapon();
+    this.#sync_player_shield();
+    this.#shield_regeneration();
+    this.#shield_cooldown();
+    this.#shield_spawner();
+    this.#shield_tracking();
     this.#play_animate();
     this.#start_crash_animate();
     this.#auto_rotate();
@@ -347,6 +374,15 @@ export class GameContentInner extends CustomHTMLElement {
     }
     return false;
   }
+
+  dump() {
+    console.log(this.#player.children?.map((x) => Object.getPrototypeOf(x)));
+    for (const entity of this.#world.entities) {
+      if (entity.parent == Object.getPrototypeOf(this.#player)) {
+        console.log(Object.getPrototypeOf(entity));
+      }
+    }
+  }
 }
 
 @customElement("cheat-menu")
@@ -398,7 +434,11 @@ class CheatMenu extends CustomHTMLElement {
 
   @listen_at("click", "#open")
   async open() {
-    if (this.player?.player_weapon == null) return;
+    if (
+      this.player?.player_weapon == null ||
+      this.player?.player_shield == null
+    )
+      return;
     try {
       this.form.replaceChildren(
         <FieldSet
@@ -407,6 +447,20 @@ class CheatMenu extends CustomHTMLElement {
           title="Weapon properities"
         >
           {Object.entries(this.player.player_weapon).map(([key, value]) => (
+            <div class="prop" data-key={key}>
+              <div class="btn" data-change="-1" />
+              <div class="value">{value}</div>
+              <div class="btn" data-change="+1" />
+              <div class="btn" data-change="+10" />
+            </div>
+          ))}
+        </FieldSet>,
+        <FieldSet
+          class="props"
+          data-key="player_shield"
+          title="Shield properities"
+        >
+          {Object.entries(this.player.player_shield).map(([key, value]) => (
             <div class="prop" data-key={key}>
               <div class="btn" data-change="-1" />
               <div class="value">{value}</div>
@@ -445,6 +499,7 @@ class CheatMenu extends CustomHTMLElement {
   <>
     <DialogForm id="paused_screen" type="dialog" title="游戏暂停">
       <CheatMenu id="cheat_menu" />
+      <StyledButton id="dump_entities">Dump entities</StyledButton>
     </DialogForm>
     <DialogForm
       id="gameover_screen"
@@ -497,6 +552,11 @@ export class GameContent extends CustomHTMLElement {
     if (document.visibilityState == "hidden") {
       this.core.pause();
     }
+  }
+
+  @listen_at("click", "#dump_entities")
+  on_click_dump() {
+    this.core.dump();
   }
 
   @listen_at("click", "#pause_button")

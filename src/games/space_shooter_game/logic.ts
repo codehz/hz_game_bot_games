@@ -10,9 +10,9 @@ import {
   Trigger,
   withTriggerState,
 } from "./types.js";
-import { sameEntity } from "/js/ecs.js";
+import { excludeEntity } from "/js/ecs.js";
 import { TextureAtlas } from "/js/atlas.js";
-import { range, Timer, vibRange } from "/js/utils.js";
+import { minmax, range, Timer, vibRange } from "/js/utils.js";
 import * as spawner from "./spawner.js";
 import AssLoader from "/js/assloader.js";
 
@@ -21,7 +21,7 @@ export const spawn_children = makeSystem(["spawn_children"], function (view) {
     const { spawn_children: children } = o;
     Promise.all(
       children.map((child) => this.defer_add({ ...child, parent: o }))
-    ).then((children) => this.defer_update(o, { children }));
+    ).then((children) => this.defer_push_array(o, "children", ...children));
     this.defer_remove_component(o, "spawn_children");
   }
 });
@@ -37,7 +37,9 @@ export const run_parent_trigger = makeSystem(
 export const cleanup_parent = makeSystem(["dying", "parent"], function (view) {
   for (const o of view) {
     this.defer_remove_component(o, "parent");
-    this.defer_filter_array(o.parent, "children", sameEntity(o));
+    this.defer_filter_array(o.parent, "children", excludeEntity(o));
+    if (o.die_trigger_on_parent != null)
+      processTrigger(this, o.parent, o.die_trigger_on_parent(o));
   }
 });
 
@@ -392,13 +394,14 @@ export const apply_effects = makeSystem(
     for (const o of view) {
       if (o.effects.length == 0) continue;
       const effect = o.effects.shift()!;
-      if (effect.type == "damage")
-        this.defer_update_by(o, {
-          life(old) {
-            return old - effect.value;
-          },
-        });
-      else if (effect.type == "sound") {
+      if (effect.type == "damage") {
+        if (!o.tag_godmode && !o.tag_has_shield)
+          this.defer_update_by(o, {
+            life(old) {
+              return old - effect.value;
+            },
+          });
+      } else if (effect.type == "sound") {
         const audio = assets.getAudio(`sfx_${effect.name}`)!;
         const source = assets.audioctx.createBufferSource();
         source.buffer = audio;
@@ -418,14 +421,7 @@ export const sync_player_weapon = makeSystem(
       this.defer_remove_component(o, "event_player_upgrade_weapon");
       const method = o.event_player_upgrade_weapon;
       const weapon = o.player_weapon;
-      switch (method) {
-        case "count":
-        case "damage":
-        case "spread":
-        case "stability":
-          weapon[method]++;
-          break;
-      }
+      if (method != "reset") weapon[method]++;
       const { color } = o.player_model;
       const colorStr = color[0].toUpperCase() + color.slice(1);
       let { damage, count, spread, stability } = weapon;
@@ -495,6 +491,98 @@ export const sync_player_weapon = makeSystem(
           )
         )
       );
+    }
+  }
+);
+
+export const sync_player_shield = makeSystem(
+  ["player_shield", "event_player_upgrade_shield"],
+  function (view, _: void) {
+    for (const o of view) {
+      this.defer_remove_component(o, "event_player_upgrade_shield");
+      const method = o.event_player_upgrade_shield;
+      const shield = o.player_shield;
+      shield[method]++;
+    }
+  }
+);
+
+export const shield_regeneration = makeSystem(
+  ["player_shield", "shield_regeneration"],
+  function (view) {
+    for (const o of view) {
+      const {
+        shield_regeneration,
+        player_shield: { regeneration, count },
+        tag_has_shield,
+      } = o;
+      const max = count - (!!tag_has_shield ? 1 : 0);
+      if (shield_regeneration >= max || regeneration == 1) continue;
+      o.shield_regeneration = Math.min(
+        shield_regeneration + Math.log2(regeneration) / 2000,
+        max
+      );
+    }
+  }
+);
+
+export const shield_cooldown = makeSystem(
+  ["shield_cooldown", "player_shield", "-tag_has_shield"],
+  function (view) {
+    for (const o of view) {
+      if (o.shield_cooldown > 1) {
+        this.defer_remove_component(o, "shield_cooldown");
+        continue;
+      }
+      const { cooldown } = o.player_shield;
+      o.shield_cooldown += Math.log2(cooldown + 1) / 1000;
+    }
+  }
+);
+
+export const shield_spawner = makeSystem(
+  [
+    "player_shield",
+    "shield_regeneration",
+    "-tag_has_shield",
+    "-shield_cooldown",
+  ],
+  function (view, _: void, atlas: TextureAtlas) {
+    for (const o of view) {
+      if (o.shield_regeneration < 1) continue;
+      o.shield_regeneration--;
+      const { strengh } = o.player_shield;
+      const level = minmax(Math.log10(strengh) | 0, 0, 2) + 1;
+      this.defer_update(o, { tag_has_shield: true, shield_cooldown: 0 });
+      this.defer_push_array(
+        o,
+        "effects",
+        Effect.trigger(
+          Trigger.spawn_children({
+            tag_collision_receiver: true,
+            tag_shield: true,
+            team: "FRIENDLY",
+            life: strengh,
+            hitbox: { halfwidth: 10, halfheight: 10 },
+            atlas: atlas.get(`shield${level}`),
+            rotate: 0,
+            opacity: 1,
+            scale: 0.2,
+            *die_trigger_on_parent() {
+              yield Trigger.remove("tag_has_shield");
+            },
+          })
+        )
+      );
+    }
+  }
+);
+
+export const shield_tracking = makeSystem(
+  ["parent", "tag_shield"],
+  function (view) {
+    for (const o of view) {
+      this.defer_update(o, { position: { ...o.parent.position! } });
     }
   }
 );

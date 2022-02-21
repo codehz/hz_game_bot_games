@@ -118,6 +118,22 @@ function outlineText(
   ctx.fillText(text, x, y);
 }
 
+function draw_bar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  value: number
+) {
+  ctx.save();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 0.5;
+  roundedRect(ctx, x, y, width, 4, 1).stroke();
+  ctx.fillStyle = "#fff";
+  roundedRect(ctx, x + 0.5, y + 0.5, value * (width - 1), 3, 0.5).fill();
+  ctx.restore();
+}
+
 export const draw_health = makePureSystem(function (
   ctx: CanvasRenderingContext2D,
   player: OurEntity
@@ -126,11 +142,7 @@ export const draw_health = makePureSystem(function (
   life = life < 0 ? 0 : life;
   const max_life = player.max_life!;
   ctx.save();
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 0.5;
-  roundedRect(ctx, 15, 5, 40, 4, 1).stroke();
-  ctx.fillStyle = "#fff";
-  roundedRect(ctx, 15.5, 5.5, (life / max_life) * 39, 3, 0.5).fill();
+  draw_bar(ctx, 15, 5, 40, life / max_life);
   ctx.strokeStyle = "#777";
   ctx.lineWidth = 0.8;
   ctx.fillStyle = "white";
@@ -144,12 +156,17 @@ export const draw_health = makePureSystem(function (
     time_limit = NaN,
   } = player.player_stats ?? {};
   const { spread = NaN } = player.player_weapon ?? {};
-  const dps = (spread / time * 60) * damage;
+  const dps = (spread / time) * 60 * damage;
+  const reg = player.shield_regeneration ?? 0;
+  const cool = player.shield_cooldown ?? 0;
+  draw_bar(ctx, 15, 10, 30, reg - (reg | 0));
+  outlineText(ctx, "SP:", 5, 10);
+  outlineText(ctx, `${reg.toFixed(2)}(CD:${(1 - cool).toFixed(2)})`, 47, 10);
   outlineText(
     ctx,
     `DMG:${damage.toFixed(1)} TIM:${time}/${time_limit}(${dps.toFixed(1)})`,
     5,
-    10
+    15
   );
   ctx.restore();
 });
@@ -163,8 +180,8 @@ export const debug_entities = makeSystem(
     ctx.fillStyle = "white";
     ctx.font = "4px 'kenvector future'";
     ctx.textBaseline = "hanging";
-    outlineText(ctx, `ENTITIES: ${count}`, 5, 15);
-    outlineText(ctx, `DYING: ${view.size}`, 5, 20);
+    outlineText(ctx, `ENTITIES: ${count}`, 5, 20);
+    outlineText(ctx, `DYING: ${view.size}`, 5, 25);
     ctx.restore();
   }
 );

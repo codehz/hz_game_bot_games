@@ -31,7 +31,7 @@ export const Trigger = Object.freeze({
   update(template: Partial<TaggableComponents>) {
     return { type: "update", template } as const;
   },
-  remove(components: keyof Partial<TaggableComponents>) {
+  remove(...components: (keyof Partial<TaggableComponents>)[]) {
     return { type: "remove", components } as const;
   },
   action(action: (entity: OurEntity) => void) {
@@ -67,7 +67,7 @@ export function processTriggerResult(
   } else if (result.type == "update") {
     world.defer_update(target, result.template);
   } else if (result.type == "remove") {
-    world.defer_remove_components(target, ...(result.components as any));
+    world.defer_remove_components(target, ...result.components);
   } else if (result.type == "filter_children") {
     target.children
       ?.filter((child) => !result.filter(child))
@@ -89,7 +89,7 @@ export function processTriggerResult(
 export function processTrigger(
   world: OurWorld,
   target: Partial<TaggableComponents>,
-  gen: Generator<TriggerResult> | undefined
+  gen: Iterable<TriggerResult> | undefined
 ) {
   if (!gen) return;
   for (const result of gen) {
@@ -159,6 +159,19 @@ export interface Components {
     time_limit: number;
     time: number;
   };
+  shield_regeneration: number;
+  shield_cooldown: number;
+  player_shield: {
+    regeneration: number;
+    cooldown: number;
+    strengh: number;
+    count: number;
+  };
+  event_player_upgrade_shield:
+    | "regeneration"
+    | "cooldown"
+    | "strengh"
+    | "count";
   player_overlay: number;
   animate: {
     target: Partial<PickByType<Components, number>>;
@@ -176,6 +189,7 @@ export interface Components {
   max_life: number;
   keep_alive: number;
   die_trigger: Trigger;
+  die_trigger_on_parent: Trigger;
   dying: string;
   tracking_player: {
     range: number;

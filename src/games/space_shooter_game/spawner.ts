@@ -5,6 +5,7 @@ import {
   Vec2,
   Effect,
   TaggedPartialComponents,
+  Components,
 } from "./types.js";
 import { AtlasDescriptor, TextureAtlas } from "/js/atlas.js";
 import { range, Timer } from "/js/utils.js";
@@ -227,7 +228,15 @@ export function ufo(
 
 export function powerup(
   position: Vec2,
-  kind: "count" | "damage" | "spread" | "stability",
+  kind:
+    | "count"
+    | "damage"
+    | "spread"
+    | "stability"
+    | "regeneration"
+    | "cooldown"
+    | "strengh"
+    | "count",
   text_atlas: TextureAtlas
 ): TaggedPartialComponents<
   | "position"
@@ -257,7 +266,28 @@ export function powerup(
     case "stability":
       atlas = text_atlas.get("powerupYellow_bolt")!;
       break;
+    case "regeneration":
+      atlas = text_atlas.get("powerupBlue_shield")!;
+      break;
+    case "cooldown":
+      atlas = text_atlas.get("powerupGreen_shield")!;
+      break;
+    case "strengh":
+      atlas = text_atlas.get("powerupRed_shield")!;
+      break;
+    case "count":
+      atlas = text_atlas.get("powerupYellow_shield")!;
+      break;
   }
+  // @ts-ignore
+  const upgrade: Partial<Components> = [
+    "count",
+    "damage",
+    "spread",
+    "stability",
+  ].includes(kind)
+    ? { event_player_upgrade_weapon: kind }
+    : { event_player_upgrade_shield: kind };
   return {
     tag_bonus: true,
     position: { ...position },
@@ -273,7 +303,7 @@ export function powerup(
     },
     collision_effects: [
       Effect.sound("zap"),
-      Effect.trigger(Trigger.update({ event_player_upgrade_weapon: kind })),
+      Effect.trigger(Trigger.update(upgrade)),
     ],
     random_walking: {
       timeout: 50,

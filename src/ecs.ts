@@ -15,7 +15,7 @@ export type ViewKey<T> =
 export type ViewFilter<T> = (obj: T) => boolean;
 
 export type MixOptional<T, S extends ViewKey<T>> = Omit<
-  Partial<T> & Pick<T, S extends keyof T ? S : never>,
+  Taggable & Partial<T> & Pick<T, S extends keyof T ? S : never>,
   S extends `-${infer N}` ? N : never
 >;
 
@@ -218,8 +218,7 @@ export default class World<
     if (key in obj) (obj as any)[key] = value;
     else {
       const cache = this.get(obj)!;
-      console.assert(cache != null);
-      this.#deferred.push(() => (cache[key] = value));
+      if (cache != null) this.#deferred.push(() => (cache[key] = value));
     }
   }
 
@@ -230,12 +229,12 @@ export default class World<
   ) {
     if (values.length == 0) return;
     const cache = this.get(obj)!;
-    console.assert(cache != null);
-    this.#deferred.push(() => {
-      const orig = cache[key] ?? ([] as C[K]);
-      // @ts-ignore
-      cache[key] = [...orig, ...values];
-    });
+    if (cache != null)
+      this.#deferred.push(() => {
+        const orig = cache[key] ?? ([] as C[K]);
+        // @ts-ignore
+        cache[key] = [...orig, ...values];
+      });
   }
 
   defer_filter_array<K extends keyof PickByType<C, any[]>>(
@@ -245,29 +244,28 @@ export default class World<
   ) {
     if (!(key in obj)) return;
     const cache = this.get(obj)!;
-    console.assert(cache != null);
-    this.#deferred.push(() => {
-      const orig = cache[key]!;
-      // @ts-ignore
-      cache[key] = orig.filter(filter);
-    });
+    if (cache != null)
+      this.#deferred.push(() => {
+        const orig = cache[key]!;
+        // @ts-ignore
+        cache[key] = orig.filter(filter);
+      });
   }
 
   defer_update(obj: object, value: Partial<C> & Taggable) {
     const cache = this.get(obj)!;
-    console.assert(cache != null);
-    this.#deferred.push(() => Object.assign(cache, value));
+    if (cache != null) this.#deferred.push(() => Object.assign(cache, value));
   }
 
   defer_update_by(obj: object, value: Partial<UpdateMapped<C>>) {
     const cache = this.get(obj)!;
-    console.assert(cache != null);
-    this.#deferred.push(() => {
-      for (const key in value) {
-        // @ts-ignore
-        if (key in cache) cache[key] = value[key](cache[key]);
-      }
-    });
+    if (cache != null)
+      this.#deferred.push(() => {
+        for (const key in value) {
+          // @ts-ignore
+          if (key in cache) cache[key] = value[key](cache[key]);
+        }
+      });
   }
 
   defer_remove_component(
@@ -276,8 +274,7 @@ export default class World<
   ) {
     if (key in obj) {
       const cache = this.get(obj)!;
-      console.assert(cache != null);
-      this.#deferred.push(() => delete cache[key]);
+      if (cache != null) this.#deferred.push(() => delete cache[key]);
     }
   }
 
@@ -288,15 +285,14 @@ export default class World<
     keys = keys.filter((key) => key in obj);
     if (keys.length > 0) {
       const cache = this.get(obj)!;
-      console.assert(cache != null);
-      this.#deferred.push(() => keys.forEach((key) => delete cache[key]));
+      if (cache != null)
+        this.#deferred.push(() => keys.forEach((key) => delete cache[key]));
     }
   }
 
   defer(obj: object, action: (entity: EntityProxy<C>) => void) {
     const cache = this.get(obj)!;
-    console.assert(cache != null);
-    this.#deferred.push(() => action(cache));
+    if (cache != null) this.#deferred.push(() => action(cache));
   }
 
   sync() {
@@ -330,8 +326,8 @@ export default class World<
   }
 }
 
-export function sameEntity(a: object) {
-  return (b: object) => getRawObject(a) == getRawObject(b);
+export function excludeEntity(a: object) {
+  return (b: object) => getRawObject(a) != getRawObject(b);
 }
 
 export type EntityProxy<C> = Partial<C> & Taggable;

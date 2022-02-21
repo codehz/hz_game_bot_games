@@ -68,3 +68,7 @@ export function vibRange(to: number) {
   reversed.reverse();
   return reversed;
 }
+
+export function minmax(value: number, min: number, max: number) {
+  return Math.max(Math.min(value, max), min);
+}
