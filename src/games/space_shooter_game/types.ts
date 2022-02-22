@@ -264,3 +264,12 @@ export function makeSystem<
     return (input) => f.call(world, view, input, ...params);
   };
 }
+
+export function makePlugin<I = void, P extends any[] = []>(
+  ...factories: SystemBuilder<I, P>[]
+): SystemBuilder<I, P> {
+  return (world, ...params) => {
+    const instances = factories.map((f) => f(world, ...params));
+    return (input) => instances.forEach((f) => f(input));
+  };
+}

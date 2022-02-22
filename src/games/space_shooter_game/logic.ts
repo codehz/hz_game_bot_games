@@ -1,5 +1,6 @@
 import {
   Effect,
+  makePlugin,
   makePureSystem,
   makeSystem,
   OurEntity,
@@ -16,7 +17,7 @@ import { minmax, range, Timer, vibRange } from "/js/utils.js";
 import * as spawner from "./spawner.js";
 import AssLoader from "/js/assloader.js";
 
-export const spawn_children = makeSystem(["spawn_children"], function (view) {
+const spawn_children = makeSystem(["spawn_children"], function (view) {
   for (const o of view) {
     const { spawn_children: children } = o;
     Promise.all(
@@ -26,7 +27,7 @@ export const spawn_children = makeSystem(["spawn_children"], function (view) {
   }
 });
 
-export const run_parent_trigger = makeSystem(
+const run_parent_trigger = makeSystem(
   ["parent_trigger", "parent"],
   function (view) {
     for (const { parent, parent_trigger } of view)
@@ -34,7 +35,7 @@ export const run_parent_trigger = makeSystem(
   }
 );
 
-export const cleanup_parent = makeSystem(["dying", "parent"], function (view) {
+const cleanup_parent = makeSystem(["dying", "parent"], function (view) {
   for (const o of view) {
     this.defer_remove_component(o, "parent");
     this.defer_filter_array(o.parent, "children", excludeEntity(o));
@@ -43,26 +44,30 @@ export const cleanup_parent = makeSystem(["dying", "parent"], function (view) {
   }
 });
 
-export const cleanup_children = makeSystem(
-  ["dying", "children"],
-  function (view) {
-    for (const o of view) {
-      this.defer_remove_component(o, "children");
-      for (const child of o.children) {
-        this.defer_remove_component(child, "parent");
-        this.defer_update(child, {
-          dying: o.dying,
-          position: o.position,
-          rotate: o.rotate,
-        });
-      }
+const cleanup_children = makeSystem(["dying", "children"], function (view) {
+  for (const o of view) {
+    this.defer_remove_component(o, "children");
+    for (const child of o.children) {
+      this.defer_remove_component(child, "parent");
+      this.defer_update(child, {
+        dying: o.dying,
+        position: o.position,
+        rotate: o.rotate,
+      });
     }
   }
+});
+
+export const children_plugin = makePlugin(
+  spawn_children,
+  run_parent_trigger,
+  cleanup_parent,
+  cleanup_children
 );
 
-export const attach_player_atlas = makeSystem(
+const attach_player_atlas = makeSystem(
   ["-atlas", "player_model"],
-  function (view, atlas: TextureAtlas) {
+  function (view, _: void, atlas: TextureAtlas) {
     for (const obj of view) {
       const { shape, color } = obj.player_model;
       this.defer_add_component(
@@ -74,9 +79,9 @@ export const attach_player_atlas = makeSystem(
   }
 );
 
-export const attach_player_overlay = makeSystem(
+const attach_player_overlay = makeSystem(
   ["event_player_set_overlay", "player_model"],
-  function (view, atlas: TextureAtlas) {
+  function (view, _: void, atlas: TextureAtlas) {
     for (const obj of view) {
       const damage = obj.event_player_set_overlay;
       this.defer_add_component(obj, "player_overlay", damage);
@@ -94,7 +99,7 @@ export const attach_player_overlay = makeSystem(
   }
 );
 
-export const set_player_overlay_based_on_health = makeSystem(
+const set_player_overlay_based_on_health = makeSystem(
   ["life", "max_life", "player_overlay"],
   function (view) {
     for (const obj of view) {
@@ -105,6 +110,12 @@ export const set_player_overlay_based_on_health = makeSystem(
       this.defer_add_component(obj, "event_player_set_overlay", level);
     }
   }
+);
+
+export const player_shape = makePlugin(
+  attach_player_atlas,
+  attach_player_overlay,
+  set_player_overlay_based_on_health
 );
 
 export const play_animate = makeSystem(["animate"], function (view) {
@@ -152,9 +163,10 @@ export const start_crash_animate = makeSystem(
   }
 );
 
-export const limit_player = makePureSystem(function (
+const limit_player = makePureSystem(function (
   _: void,
-  player: OurEntity
+  player: OurEntity,
+  _ghost: OurEntity
 ) {
   const { x, y } = player.position!;
   if (x < 10) {
@@ -169,7 +181,7 @@ export const limit_player = makePureSystem(function (
   }
 });
 
-export const move_player = makePureSystem(function (
+const move_player = makePureSystem(function (
   _: void,
   player: OurEntity,
   ghost: OurEntity
@@ -195,7 +207,11 @@ export const move_player = makePureSystem(function (
   }
 });
 
-export const move_ghost = makePureSystem(function (_: void, ghost: OurEntity) {
+const move_ghost = makePureSystem(function (
+  _: void,
+  _player: OurEntity,
+  ghost: OurEntity
+) {
   if (this.resource.ghost_target) {
     let { x, y } = this.resource.ghost_target;
     ghost.position!.x = Math.min(Math.max(x, 10), 90);
@@ -206,7 +222,13 @@ export const move_ghost = makePureSystem(function (_: void, ghost: OurEntity) {
   }
 });
 
-export const calc_rotate = makeSystem(
+export const player_movement = makePlugin(
+  limit_player,
+  move_player,
+  move_ghost
+);
+
+const calc_rotate = makeSystem(
   ["-rotate", "velocity", "-tag_bullet"],
   function (view) {
     for (const o of view) {
@@ -217,36 +239,22 @@ export const calc_rotate = makeSystem(
   }
 );
 
-export const auto_rotate = makeSystem(
-  ["auto_rotate", "rotate", "-dying"],
-  (view) => {
-    for (const o of view) {
-      o.rotate += o.auto_rotate;
-    }
+const auto_rotate = makeSystem(["auto_rotate", "rotate", "-dying"], (view) => {
+  for (const o of view) {
+    o.rotate += o.auto_rotate;
   }
-);
+});
 
-export const clean_dying = makeSystem(
-  ["dying", "position", "-tag_crashable"],
-  function (view) {
-    for (const item of view) {
-      this.defer_remove(item);
-      processTrigger(this, item, item.die_trigger?.(item));
-    }
-  }
-);
+export const rotate = makePlugin(calc_rotate, auto_rotate);
 
-export const clean_lowlife = makeSystem(
-  ["life", "-tag_crashing"],
-  function (view) {
-    view
-      .iter()
-      .filter((o) => o.life <= 0)
-      .forEach((o) => this.defer_add_component(o, "dying", "low life"));
-  }
-);
+const clean_lowlife = makeSystem(["life", "-tag_crashing"], function (view) {
+  view
+    .iter()
+    .filter((o) => o.life <= 0)
+    .forEach((o) => this.defer_add_component(o, "dying", "low life"));
+});
 
-export const clean_range = makeSystem(
+const clean_range = makeSystem(
   ["position", "velocity", "-tag_player"],
   function (view) {
     view
@@ -263,6 +271,33 @@ export const clean_range = makeSystem(
         this.defer_add_component(o, "dying", "out of range");
       });
   }
+);
+
+const keep_alive = makeSystem(["keep_alive"], function (view) {
+  view
+    .iter()
+    .filter((obj) => obj.keep_alive-- <= 0)
+    .forEach((obj) => {
+      this.defer_remove_component(obj, "keep_alive");
+      this.defer_add_component(obj, "dying", "timeout");
+    });
+});
+
+const clean_dying = makeSystem(
+  ["dying", "position", "-tag_crashable"],
+  function (view) {
+    for (const item of view) {
+      this.defer_remove(item);
+      processTrigger(this, item, item.die_trigger?.(item));
+    }
+  }
+);
+
+export const cleanup = makePlugin(
+  clean_lowlife,
+  clean_range,
+  keep_alive,
+  clean_dying
 );
 
 function general_collision_detection(
@@ -328,16 +363,6 @@ export const collision_detection = (world: OurWorld) => {
   };
 };
 
-export const keep_alive = makeSystem(["keep_alive"], function (view) {
-  view
-    .iter()
-    .filter((obj) => obj.keep_alive-- <= 0)
-    .forEach((obj) => {
-      this.defer_remove_component(obj, "keep_alive");
-      this.defer_add_component(obj, "dying", "timeout");
-    });
-});
-
 export const moving = makeSystem(["position", "velocity", "-dying"], (view) => {
   for (const { position, velocity } of view) {
     position.x += velocity.x;
@@ -345,7 +370,7 @@ export const moving = makeSystem(["position", "velocity", "-dying"], (view) => {
   }
 });
 
-export const tracking_player = makeSystem(
+const tracking_player = makeSystem(
   ["tracking_player", "position", "velocity", "-dying"],
   (view, _: void, player: OurEntity) => {
     const target = player.position!;
@@ -366,7 +391,7 @@ export const tracking_player = makeSystem(
   }
 );
 
-export const random_walking = makeSystem(
+const random_walking = makeSystem(
   ["random_walking", "velocity", "position"],
   (view) => {
     for (const o of view) {
@@ -387,6 +412,8 @@ export const random_walking = makeSystem(
     }
   }
 );
+
+export const ai = makePlugin(tracking_player, random_walking);
 
 export const apply_effects = makeSystem(
   ["effects"],
@@ -414,7 +441,7 @@ export const apply_effects = makeSystem(
   }
 );
 
-export const sync_player_weapon = makeSystem(
+const sync_player_weapon = makeSystem(
   ["player_weapon", "event_player_upgrade_weapon", "player_model"],
   function (view, _: void, atlas: TextureAtlas) {
     for (const o of view) {
@@ -495,9 +522,9 @@ export const sync_player_weapon = makeSystem(
   }
 );
 
-export const sync_player_shield = makeSystem(
+const sync_player_shield = makeSystem(
   ["player_shield", "event_player_upgrade_shield"],
-  function (view, _: void) {
+  function (view) {
     for (const o of view) {
       this.defer_remove_component(o, "event_player_upgrade_shield");
       const method = o.event_player_upgrade_shield;
@@ -507,7 +534,7 @@ export const sync_player_shield = makeSystem(
   }
 );
 
-export const shield_regeneration = makeSystem(
+const shield_regeneration = makeSystem(
   ["player_shield", "shield_regeneration"],
   function (view) {
     for (const o of view) {
@@ -526,7 +553,7 @@ export const shield_regeneration = makeSystem(
   }
 );
 
-export const shield_cooldown = makeSystem(
+const shield_cooldown = makeSystem(
   ["shield_cooldown", "player_shield", "-tag_has_shield"],
   function (view) {
     for (const o of view) {
@@ -540,7 +567,7 @@ export const shield_cooldown = makeSystem(
   }
 );
 
-export const shield_spawner = makeSystem(
+const shield_spawner = makeSystem(
   [
     "player_shield",
     "shield_regeneration",
@@ -578,11 +605,17 @@ export const shield_spawner = makeSystem(
   }
 );
 
-export const shield_tracking = makeSystem(
-  ["parent", "tag_shield"],
-  function (view) {
-    for (const o of view) {
-      this.defer_update(o, { position: { ...o.parent.position! } });
-    }
+const shield_tracking = makeSystem(["parent", "tag_shield"], function (view) {
+  for (const o of view) {
+    this.defer_update(o, { position: { ...o.parent.position! } });
   }
+});
+
+export const equipment = makePlugin(
+  sync_player_weapon,
+  sync_player_shield,
+  shield_regeneration,
+  shield_cooldown,
+  shield_spawner,
+  shield_tracking
 );

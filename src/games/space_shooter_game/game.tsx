@@ -107,35 +107,17 @@ export class GameContentInner extends CustomHTMLElement {
     atlas: atlas.get("playerShip1_blue")!,
   });
 
-  #spawn_children = logic.spawn_children(this.#world);
-  #run_parent_trigger = logic.run_parent_trigger(this.#world);
-  #cleanup_parent = logic.cleanup_parent(this.#world);
-  #cleanup_children = logic.cleanup_children(this.#world);
-  #attach_player_atlas = logic.attach_player_atlas(this.#world);
-  #attach_player_overlay = logic.attach_player_overlay(this.#world);
-  #set_player_overlay_based_on_health =
-    logic.set_player_overlay_based_on_health(this.#world);
-  #sync_player_weapon = logic.sync_player_weapon(this.#world, atlas);
-  #sync_player_shield = logic.sync_player_shield(this.#world);
-  #shield_regeneration = logic.shield_regeneration(this.#world);
-  #shield_cooldown = logic.shield_cooldown(this.#world);
-  #shield_spawner = logic.shield_spawner(this.#world, atlas);
-  #shield_tracking = logic.shield_tracking(this.#world);
+  #children_plugin = logic.children_plugin(this.#world);
+  #player_shape = logic.player_shape(this.#world, atlas);
+  #equipment = logic.equipment(this.#world, atlas);
   #play_animate = logic.play_animate(this.#world);
   #start_crash_animate = logic.start_crash_animate(this.#world);
-  #limit_player = logic.limit_player(this.#world, this.#player);
-  #move_player = logic.move_player(this.#world, this.#player, this.#ghost);
-  #move_ghost = logic.move_ghost(this.#world, this.#ghost);
+  #player_movement = logic.player_movement(this.#world, this.#player, this.#ghost);
   #moving = logic.moving(this.#world);
-  #calc_rotate = logic.calc_rotate(this.#world);
-  #keep_alive = logic.keep_alive(this.#world);
+  #rotate = logic.rotate(this.#world);
   #collision_detection = logic.collision_detection(this.#world);
-  #clean_range = logic.clean_range(this.#world);
-  #clean_dying = logic.clean_dying(this.#world);
-  #auto_rotate = logic.auto_rotate(this.#world);
-  #clean_lowlife = logic.clean_lowlife(this.#world);
-  #tracking_player = logic.tracking_player(this.#world, this.#player);
-  #random_walking = logic.random_walking(this.#world);
+  #cleanup = logic.cleanup(this.#world);
+  #ai = logic.ai(this.#world, this.#player);
   #apply_effects = logic.apply_effects(this.#world, assets);
   #rendering_sprite = rendering.sprite(this.#world, sheet);
   #rendering_bullet = rendering.bullet(this.#world, sheet);
@@ -249,35 +231,18 @@ export class GameContentInner extends CustomHTMLElement {
     }
     this.#world.resource.height_limit = this.canvas.height;
 
-    this.#spawn_children();
-    this.#run_parent_trigger();
-    this.#attach_player_atlas(atlas);
-    this.#attach_player_overlay(atlas);
-    this.#set_player_overlay_based_on_health();
-    this.#sync_player_weapon();
-    this.#sync_player_shield();
-    this.#shield_regeneration();
-    this.#shield_cooldown();
-    this.#shield_spawner();
-    this.#shield_tracking();
+    this.#player_shape();
+    this.#player_movement();
+    this.#equipment();
     this.#play_animate();
     this.#start_crash_animate();
-    this.#auto_rotate();
-    this.#move_ghost();
-    this.#move_player();
-    this.#limit_player();
     this.#moving();
-    this.#keep_alive();
-    this.#clean_range();
     this.#collision_detection();
-    this.#clean_lowlife();
-    this.#cleanup_parent();
-    this.#cleanup_children();
-    this.#clean_dying();
+    this.#children_plugin();
+    this.#cleanup();
+    this.#rotate();
     this.#spawn_enemy();
-    this.#calc_rotate();
-    this.#tracking_player();
-    this.#random_walking();
+    this.#ai();
     this.#apply_effects();
 
     this.#world.sync();
