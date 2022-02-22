@@ -678,7 +678,6 @@ export const loot_generator = makeSystem(
   ["prop_generator", "position"],
   function (view) {
     for (const o of view) {
-      console.log("try generate");
       this.defer_remove(o);
       const {
         position,
