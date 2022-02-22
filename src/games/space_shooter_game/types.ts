@@ -192,6 +192,7 @@ export interface Components {
   };
   shield_regeneration: number;
   shield_cooldown: number;
+  shield_cache: number;
   player_shield: {
     regeneration: number;
     cooldown: number;

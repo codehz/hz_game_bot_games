@@ -574,12 +574,12 @@ const shield_spawner = makeSystem(
     "-tag_has_shield",
     "-shield_cooldown",
   ],
-  function (view, _: void, atlas: TextureAtlas) {
+  function (view) {
     for (const o of view) {
       if (o.shield_regeneration < 1) continue;
       o.shield_regeneration--;
       const { strengh } = o.player_shield;
-      const level = minmax(Math.log10(strengh) | 0, 0, 2) + 1;
+      // const level = minmax(Math.log10(strengh) | 0, 0, 2) + 1;
       this.defer_update(o, { tag_has_shield: true, shield_cooldown: 0 });
       this.defer_push_array(
         o,
@@ -590,8 +590,8 @@ const shield_spawner = makeSystem(
             tag_shield: true,
             team: "FRIENDLY",
             life: strengh,
+            shield_cache: 0,
             hitbox: { halfwidth: 10, halfheight: 10 },
-            atlas: atlas.get(`shield${level}`),
             rotate: 0,
             opacity: 1,
             scale: 0.2,
@@ -601,6 +601,22 @@ const shield_spawner = makeSystem(
           })
         )
       );
+    }
+  }
+);
+
+const shield_atlas = makeSystem(
+  ["shield_cache", "life"],
+  function (view, _: void, atlas: TextureAtlas) {
+    for (const o of view) {
+      const { shield_cache, life } = o;
+      const level = minmax(Math.log10(life) | 0, 0, 2) + 1;
+      if (level != shield_cache) {
+        this.defer_update(o, {
+          shield_cache: level,
+          atlas: atlas.get(`shield${level}`),
+        });
+      }
     }
   }
 );
@@ -617,7 +633,8 @@ export const equipment = makePlugin(
   shield_regeneration,
   shield_cooldown,
   shield_spawner,
-  shield_tracking
+  shield_tracking,
+  shield_atlas
 );
 
 export const prop_atlas = makeSystem(
