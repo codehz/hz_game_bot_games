@@ -6,6 +6,7 @@ import {
   Effect,
   TaggedPartialComponents,
   Components,
+  LootTable,
 } from "./types.js";
 import { AtlasDescriptor, TextureAtlas } from "/js/atlas.js";
 import { range, Timer } from "/js/utils.js";
@@ -223,93 +224,5 @@ export function ufo(
         }
       ),
     })),
-  };
-}
-
-export function powerup(
-  position: Vec2,
-  kind:
-    | "count"
-    | "damage"
-    | "spread"
-    | "stability"
-    | "regeneration"
-    | "cooldown"
-    | "strengh"
-    | "capacity",
-  text_atlas: TextureAtlas
-): TaggedPartialComponents<
-  | "position"
-  | "atlas"
-  | "rotate"
-  | "scale"
-  | "opacity"
-  | "velocity"
-  | "team"
-  | "hitbox"
-  | "collision_filter"
-  | "collision_effects"
-  | "random_walking",
-  "bonus"
-> {
-  let atlas: AtlasDescriptor;
-  switch (kind) {
-    case "count":
-      atlas = text_atlas.get("powerupBlue_bolt")!;
-      break;
-    case "damage":
-      atlas = text_atlas.get("powerupRed_bolt")!;
-      break;
-    case "spread":
-      atlas = text_atlas.get("powerupGreen_bolt")!;
-      break;
-    case "stability":
-      atlas = text_atlas.get("powerupYellow_bolt")!;
-      break;
-    case "regeneration":
-      atlas = text_atlas.get("powerupBlue_shield")!;
-      break;
-    case "cooldown":
-      atlas = text_atlas.get("powerupGreen_shield")!;
-      break;
-    case "strengh":
-      atlas = text_atlas.get("powerupRed_shield")!;
-      break;
-    case "capacity":
-      atlas = text_atlas.get("powerupYellow_shield")!;
-      break;
-  }
-  // @ts-ignore
-  const upgrade: Partial<Components> = [
-    "count",
-    "damage",
-    "spread",
-    "stability",
-  ].includes(kind)
-    ? { event_player_upgrade_weapon: kind }
-    : { event_player_upgrade_shield: kind };
-  return {
-    tag_bonus: true,
-    position: { ...position },
-    atlas,
-    rotate: 0,
-    scale: 0.2,
-    opacity: 1,
-    velocity: { x: 0, y: 0.2 },
-    team: "NATURAL",
-    hitbox: { halfwidth: 3, halfheight: 3 },
-    collision_filter({ tag_player }) {
-      return !!tag_player;
-    },
-    collision_effects: [
-      Effect.sound("zap"),
-      Effect.trigger(Trigger.update(upgrade)),
-    ],
-    random_walking: {
-      timeout: 50,
-      timeout_initial: 100,
-      rate: 0.5,
-      edge: 5,
-    },
   };
 }

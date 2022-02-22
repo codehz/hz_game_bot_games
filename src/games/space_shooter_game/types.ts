@@ -12,6 +12,37 @@ import type {
 import type World from "/js/ecs.js";
 import type { BuilderUnion, PickByType } from "/js/tsutils.js";
 
+export type PropTypes =
+  | "count"
+  | "damage"
+  | "spread"
+  | "stability"
+  | "regeneration"
+  | "cooldown"
+  | "strengh"
+  | "capacity";
+
+export type LootTable = {
+  type: PropTypes;
+  weight: number;
+};
+
+export type PrecomputedLootTable = { type: PropTypes; count: number };
+
+export function computeLootTable(
+  ...inputs: LootTable[]
+): PrecomputedLootTable[] {
+  const ret: PrecomputedLootTable[] = [];
+  let last = 0;
+  for (const { type, weight } of inputs) {
+    ret.push({ type, count: last });
+    last += weight;
+  }
+  for (const r of ret) r.count /= last;
+  ret.reverse();
+  return ret;
+}
+
 export type Team = "NATURAL" | "FRIENDLY" | "HOSTILE";
 
 export interface Trigger<
@@ -204,6 +235,8 @@ export interface Components {
   collision_filter: (input: Partial<TaggableComponents>) => boolean;
   collision_effects: Effect[] | EffectGenerator;
   effects: Effect[];
+  prop_kind: PropTypes;
+  prop_generator: { table: PrecomputedLootTable[]; gate: number };
 }
 
 export type PartialComponent<S extends keyof Components> = Pick<Components, S> &

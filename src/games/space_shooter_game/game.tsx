@@ -25,6 +25,7 @@ import {
   Components,
   Resource,
   OurEntity,
+  computeLootTable,
 } from "./types.js";
 import * as rendering from "./render.js";
 import * as logic from "./logic.js";
@@ -112,12 +113,18 @@ export class GameContentInner extends CustomHTMLElement {
   #equipment = logic.equipment(this.#world, atlas);
   #play_animate = logic.play_animate(this.#world);
   #start_crash_animate = logic.start_crash_animate(this.#world);
-  #player_movement = logic.player_movement(this.#world, this.#player, this.#ghost);
+  #player_movement = logic.player_movement(
+    this.#world,
+    this.#player,
+    this.#ghost
+  );
   #moving = logic.moving(this.#world);
   #rotate = logic.rotate(this.#world);
   #collision_detection = logic.collision_detection(this.#world);
   #cleanup = logic.cleanup(this.#world);
   #ai = logic.ai(this.#world, this.#player);
+  #prop_atlas = logic.prop_atlas(this.#world, atlas);
+  #loot_generator = logic.loot_generator(this.#world);
   #apply_effects = logic.apply_effects(this.#world, assets);
   #rendering_sprite = rendering.sprite(this.#world, sheet);
   #rendering_bullet = rendering.bullet(this.#world, sheet);
@@ -196,22 +203,22 @@ export class GameContentInner extends CustomHTMLElement {
       .then((o) => {
         if (Math.random() > 0.5) {
           o.die_trigger = function* ({ position }) {
-            yield Trigger.spawn(
-              spawner.powerup(
-                position!,
-                randomSelect([
-                  "count",
-                  "damage",
-                  "spread",
-                  "stability",
-                  "regeneration",
-                  "cooldown",
-                  "strengh",
-                  "capacity",
-                ]),
-                atlas
-              )
-            );
+            yield Trigger.spawn({
+              position,
+              prop_generator: {
+                table: computeLootTable(
+                  { type: "count", weight: 5 },
+                  { type: "damage", weight: 3 },
+                  { type: "spread", weight: 1 },
+                  { type: "stability", weight: 2 },
+                  { type: "regeneration", weight: 2 },
+                  { type: "cooldown", weight: 2 },
+                  { type: "strengh", weight: 4 },
+                  { type: "capacity", weight: 1 }
+                ),
+                gate: 0.9,
+              },
+            });
           };
         }
       });
@@ -237,6 +244,8 @@ export class GameContentInner extends CustomHTMLElement {
     this.#play_animate();
     this.#start_crash_animate();
     this.#moving();
+    this.#prop_atlas();
+    this.#loot_generator();
     this.#collision_detection();
     this.#children_plugin();
     this.#cleanup();

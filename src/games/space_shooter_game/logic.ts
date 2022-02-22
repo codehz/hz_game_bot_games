@@ -12,7 +12,7 @@ import {
   withTriggerState,
 } from "./types.js";
 import { excludeEntity } from "/js/ecs.js";
-import { TextureAtlas } from "/js/atlas.js";
+import { AtlasDescriptor, TextureAtlas } from "/js/atlas.js";
 import { minmax, range, Timer, vibRange } from "/js/utils.js";
 import * as spawner from "./spawner.js";
 import AssLoader from "/js/assloader.js";
@@ -618,4 +618,96 @@ export const equipment = makePlugin(
   shield_cooldown,
   shield_spawner,
   shield_tracking
+);
+
+export const prop_atlas = makeSystem(
+  ["prop_kind", "-atlas"],
+  function (view, _: void, text_atlas: TextureAtlas) {
+    for (const o of view) {
+      const kind = o.prop_kind;
+      let atlas: AtlasDescriptor;
+      switch (kind) {
+        case "count":
+          atlas = text_atlas.get("powerupBlue_bolt")!;
+          break;
+        case "damage":
+          atlas = text_atlas.get("powerupRed_bolt")!;
+          break;
+        case "spread":
+          atlas = text_atlas.get("powerupGreen_bolt")!;
+          break;
+        case "stability":
+          atlas = text_atlas.get("powerupYellow_bolt")!;
+          break;
+        case "regeneration":
+          atlas = text_atlas.get("powerupBlue_shield")!;
+          break;
+        case "cooldown":
+          atlas = text_atlas.get("powerupGreen_shield")!;
+          break;
+        case "strengh":
+          atlas = text_atlas.get("powerupRed_shield")!;
+          break;
+        case "capacity":
+          atlas = text_atlas.get("powerupYellow_shield")!;
+          break;
+      }
+      this.defer_update(o, { atlas });
+    }
+  }
+);
+
+export const loot_generator = makeSystem(
+  ["prop_generator", "position"],
+  function (view) {
+    for (const o of view) {
+      console.log("try generate");
+      this.defer_remove(o);
+      const {
+        position,
+        prop_generator: { table, gate },
+      } = o;
+      if (Math.random() < gate) {
+        const rd = Math.random();
+        for (const { count, type } of table) {
+          if (count <= rd) {
+            // @ts-ignore
+            const upgrade: Partial<Components> = [
+              "count",
+              "damage",
+              "spread",
+              "stability",
+            ].includes(type)
+              ? { event_player_upgrade_weapon: type }
+              : { event_player_upgrade_shield: type };
+            this.defer_add({
+              tag_bonus: true,
+              position: { ...position },
+              prop_kind: type,
+              rotate: 0,
+              scale: 0.2,
+              opacity: 1,
+              velocity: { x: 0, y: 0.2 },
+              team: "NATURAL",
+              hitbox: { halfwidth: 3, halfheight: 3 },
+              collision_filter({ tag_player }) {
+                return !!tag_player;
+              },
+              collision_effects: [
+                Effect.sound("zap"),
+                Effect.trigger(Trigger.update(upgrade)),
+              ],
+              random_walking: {
+                timeout: 50,
+                timeout_initial: 100,
+                rate: 0.5,
+                edge: 5,
+              },
+            });
+            break;
+          }
+        }
+      }
+    }
+  }
 );
