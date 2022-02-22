@@ -513,10 +513,10 @@ export const shield_regeneration = makeSystem(
     for (const o of view) {
       const {
         shield_regeneration,
-        player_shield: { regeneration, count },
+        player_shield: { regeneration, capacity },
         tag_has_shield,
       } = o;
-      const max = count - (!!tag_has_shield ? 1 : 0);
+      const max = capacity - (!!tag_has_shield ? 1 : 0);
       if (shield_regeneration >= max || regeneration == 1) continue;
       o.shield_regeneration = Math.min(
         shield_regeneration + Math.log2(regeneration) / 2000,

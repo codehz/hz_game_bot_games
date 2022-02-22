@@ -236,7 +236,7 @@ export function powerup(
     | "regeneration"
     | "cooldown"
     | "strengh"
-    | "count",
+    | "capacity",
   text_atlas: TextureAtlas
 ): TaggedPartialComponents<
   | "position"
@@ -275,7 +275,7 @@ export function powerup(
     case "strengh":
       atlas = text_atlas.get("powerupRed_shield")!;
       break;
-    case "count":
+    case "capacity":
       atlas = text_atlas.get("powerupYellow_shield")!;
       break;
   }

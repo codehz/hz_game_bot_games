@@ -94,7 +94,7 @@ export class GameContentInner extends CustomHTMLElement {
         regeneration: 1,
         cooldown: 1,
         strengh: 1,
-        count: 1,
+        capacity: 1,
       },
     })
   );
@@ -225,7 +225,7 @@ export class GameContentInner extends CustomHTMLElement {
                   "regeneration",
                   "cooldown",
                   "strengh",
-                  "count",
+                  "capacity",
                 ]),
                 atlas
               )

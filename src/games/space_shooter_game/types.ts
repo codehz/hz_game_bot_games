@@ -165,13 +165,13 @@ export interface Components {
     regeneration: number;
     cooldown: number;
     strengh: number;
-    count: number;
+    capacity: number;
   };
   event_player_upgrade_shield:
     | "regeneration"
     | "cooldown"
     | "strengh"
-    | "count";
+    | "capacity";
   player_overlay: number;
   animate: {
     target: Partial<PickByType<Components, number>>;
