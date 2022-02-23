@@ -668,6 +668,8 @@ export const prop_atlas = makeSystem(
         case "capacity":
           atlas = text_atlas.get("powerupYellow_shield")!;
           break;
+        default:
+          atlas = text_atlas.get(kind)!;
       }
       this.defer_update(o, { atlas });
     }
@@ -688,12 +690,9 @@ export const loot_generator = makeSystem(
         for (const { count, type } of table) {
           if (count <= rd) {
             // @ts-ignore
-            const upgrade: Partial<Components> = [
-              "count",
-              "damage",
-              "spread",
-              "stability",
-            ].includes(type)
+            const upgrade: Partial<Components> = type.startsWith("pill_")
+              ? { event_player_pill: type }
+              : ["count", "damage", "spread", "stability"].includes(type)
               ? { event_player_upgrade_weapon: type }
               : { event_player_upgrade_shield: type };
             this.defer_add({
@@ -723,6 +722,86 @@ export const loot_generator = makeSystem(
             break;
           }
         }
+      }
+    }
+  }
+);
+
+export const process_pill = makeSystem(
+  ["event_player_pill"],
+  function (view, _: void, atlas: TextureAtlas) {
+    for (const o of view) {
+      this.defer_remove_component(o, "event_player_pill");
+      switch (o.event_player_pill) {
+        case "pill_blue":
+        case "pill_green": {
+          let keep_alive: number;
+          let interval: number;
+          let unit: number;
+          if (o.event_player_pill == "pill_blue") {
+            const amount = (o.max_life! / 2) | 0;
+            keep_alive = 10000;
+            interval = 40;
+            unit = Math.ceil((amount / keep_alive) * interval);
+            keep_alive = Math.floor((amount + 1) / unit) * interval;
+          } else {
+            const amount = (o.max_life! / 10) | 0;
+            keep_alive = amount * 10;
+            interval = 10;
+            unit = 1;
+          }
+          this.defer_push_array(o, "spawn_children", {
+            keep_alive,
+            parent_trigger: withTriggerState(
+              new Timer(interval, 0),
+              function* () {
+                if (!this.next()) return;
+                yield Trigger.update_by({
+                  life(old, { max_life }) {
+                    return Math.min(max_life, old + unit);
+                  },
+                });
+              }
+            ),
+          });
+          break;
+        }
+        case "pill_red":
+          this.defer_push_array(o, "spawn_children", {
+            keep_alive: 500,
+            parent_trigger: withTriggerState(
+              new Timer(5),
+              function* ({ player_model, position }) {
+                if (!this.next()) return;
+                const { color } = player_model!;
+                const colorStr = color[0].toUpperCase() + color.slice(1);
+                yield Trigger.spawn(
+                  spawner.bullet(
+                    {
+                      position: { ...position! },
+                      velocity: {
+                        x: 0,
+                        y: -5,
+                      },
+                      scale: 0.2,
+                      atlas: atlas.get(`laser${colorStr}03`)!,
+                      collision_effects: [
+                        Effect.sound("laser1"),
+                        Effect.damage(10),
+                      ],
+                      team: "FRIENDLY",
+                      hitbox: { halfwidth: 0.5, halfheight: 3 },
+                    },
+                    {
+                      atlas: atlas.get(`laser${colorStr}09`)!,
+                      scale: 0.2,
+                      keep_alive: 20,
+                    }
+                  )
+                );
+              }
+            ),
+          });
       }
     }
   }

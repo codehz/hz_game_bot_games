@@ -126,6 +126,7 @@ export class GameContentInner extends CustomHTMLElement {
   #prop_atlas = logic.prop_atlas(this.#world, atlas);
   #loot_generator = logic.loot_generator(this.#world);
   #apply_effects = logic.apply_effects(this.#world, assets);
+  #process_pill = logic.process_pill(this.#world, atlas);
   #rendering_sprite = rendering.sprite(this.#world, sheet);
   #rendering_bullet = rendering.bullet(this.#world, sheet);
   #draw_overlay = rendering.overlay(this.#world, sheet);
@@ -214,7 +215,11 @@ export class GameContentInner extends CustomHTMLElement {
                   { type: "regeneration", weight: 2 },
                   { type: "cooldown", weight: 2 },
                   { type: "strengh", weight: 4 },
-                  { type: "capacity", weight: 1 }
+                  { type: "capacity", weight: 1 },
+                  { type: "pill_blue", weight: 1 },
+                  { type: "pill_green", weight: 3 },
+                  { type: "pill_red", weight: 2 },
+                  { type: "pill_yellow", weight: 1 }
                 ),
                 gate: 0.9,
               },
@@ -248,6 +253,7 @@ export class GameContentInner extends CustomHTMLElement {
     this.#loot_generator();
     this.#collision_detection();
     this.#children_plugin();
+    this.#process_pill();
     this.#cleanup();
     this.#rotate();
     this.#spawn_enemy();

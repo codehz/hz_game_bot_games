@@ -263,7 +263,7 @@ export default class World<
       this.#deferred.push(() => {
         for (const key in value) {
           // @ts-ignore
-          if (key in cache) cache[key] = value[key](cache[key]);
+          if (key in cache) cache[key] = value[key](cache[key], cache);
         }
       });
   }

@@ -10,7 +10,7 @@ import type {
   ViewKey,
 } from "/js/ecs.js";
 import type World from "/js/ecs.js";
-import type { BuilderUnion, PickByType } from "/js/tsutils.js";
+import type { BuilderUnion, PickByType, UpdateMapped } from "/js/tsutils.js";
 
 export type PropTypes =
   | "count"
@@ -20,7 +20,11 @@ export type PropTypes =
   | "regeneration"
   | "cooldown"
   | "strengh"
-  | "capacity";
+  | "capacity"
+  | "pill_blue"
+  | "pill_green"
+  | "pill_red"
+  | "pill_yellow";
 
 export type LootTable = {
   type: PropTypes;
@@ -62,6 +66,9 @@ export const Trigger = Object.freeze({
   update(template: Partial<TaggableComponents>) {
     return { type: "update", template } as const;
   },
+  update_by(updater: Partial<UpdateMapped<Components>>) {
+    return { type: "update_by", updater } as const;
+  },
   remove(...components: (keyof Partial<TaggableComponents>)[]) {
     return { type: "remove", components } as const;
   },
@@ -97,6 +104,8 @@ export function processTriggerResult(
     world.defer_add(result.template);
   } else if (result.type == "update") {
     world.defer_update(target, result.template);
+  } else if (result.type == "update_by") {
+    world.defer_update_by(target, result.updater);
   } else if (result.type == "remove") {
     world.defer_remove_components(target, ...result.components);
   } else if (result.type == "filter_children") {
@@ -173,6 +182,7 @@ export interface Components {
     mode: GlobalCompositeOperation;
   };
   event_player_set_overlay: number;
+  event_player_pill: "pill_blue" | "pill_green" | "pill_red" | "pill_yellow";
   player_weapon: {
     count: number;
     damage: number;

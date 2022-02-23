@@ -6,5 +6,5 @@ export type PickByType<T, Value> = {
 };
 
 export type UpdateMapped<T> = {
-  [P in keyof T]: (old: T[P]) => T[P];
+  [P in keyof T]: (old: T[P], raw: T) => T[P];
 };
