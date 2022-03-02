@@ -1,3 +1,8 @@
+import "./types.js";
+import "./render.js";
+import "./logic.js";
+import "./sound.js";
+
 import jsx from "/js/jsx.js";
 import World from "/js/ecs.js";
 import GameCanvas from "/js/canvas.js";
@@ -12,11 +17,11 @@ import {
   listen_external,
   listen_host,
 } from "/js/ce.js";
-import { Components, Resource, Trigger } from "./types.js";
+import { Components, Resource } from "./types.js";
 import * as render from "./render.js";
 import * as logic from "./logic.js";
 import { Sound } from "./sound.js";
-import { DialogForm, StyledButton } from "/js/common.js";
+import { DialogForm } from "/js/common.js";
 import * as index from "/js/index.js";
 
 @customElement("game-instance")
