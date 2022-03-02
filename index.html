@@ -15,11 +15,13 @@
   <link rel="modulepreload" href="/js/loading.js">
   <link rel="modulepreload" href="/js/utils.js">
   <link rel="modulepreload" href="/js/jsx.js">
+  <link rel="modulepreload" href="/js/error.js">
   <link rel="modulepreload" href="/js/index.js">
   <script type="module">
+    import reportError from "/js/error.js";
     if (!("adoptedStyleSheets" in document)) await import("/deps/css.js");
     await import("/deps/patch.js");
-    await import("/js/index.js");
+    await import("/js/index.js").catch(reportError);
   </script>
   <title>Document</title>
 </head>
@@ -36,6 +38,7 @@
       </div>
     </div>
   </game-content>
+  <error-dialog id="error-dialog" />
 </body>
 
 </html>
