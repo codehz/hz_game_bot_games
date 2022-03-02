@@ -40,7 +40,10 @@ export const relocate_wall = makeSystem(
         event_relocate_wall: undefined,
         animate: {
           step: 50 + 150 * Math.random(),
-          target: { location: Math.random() },
+          target: {
+            location: Math.random(),
+            length: Math.max(o.length! * 0.95, 10),
+          },
         },
       });
     }
