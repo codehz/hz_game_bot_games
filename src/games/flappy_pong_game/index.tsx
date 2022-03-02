@@ -16,6 +16,7 @@ import {
   id,
   listen_external,
   listen_host,
+  listen_closest,
 } from "/js/ce.js";
 import { Components, Resource } from "./types.js";
 import * as render from "./render.js";
@@ -159,9 +160,14 @@ class GameInstance extends CustomHTMLElement {
     }
   }
 
-  @listen_host("pointerdown")
-  trigger() {
+  @listen_external("pointerdown", document.body)
+  on_pointerdown(e: MouseEvent) {
     if (this.gameover) return;
+    e.preventDefault();
+    this.trigger();
+  }
+
+  trigger() {
     this.#world.resource.event_trigger = true;
     this.#sound.play(150, 180, 0.5);
   }
