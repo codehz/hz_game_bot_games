@@ -21,7 +21,18 @@ declare global {
 }
 
 if (location.pathname.includes("mock")) {
-  score = async () => [];
+  score = async () => [
+    {
+      position: 1,
+      score: 2,
+      user: { first_name: "abc", id: 0 },
+    },
+    {
+      position: 2,
+      score: 1,
+      user: { first_name: "def", last_name: "xyz", id: 0 },
+    },
+  ];
 } else {
   score = (score: number) => reqeust("SCORE", score + "");
   const { game } = getData<{ game: string }>();

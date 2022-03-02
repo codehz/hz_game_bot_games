@@ -4,6 +4,7 @@ import {
   CustomHTMLElement,
   frame,
   mount,
+  prop,
   select,
   shadow,
   tag,
@@ -16,9 +17,13 @@ import jsx from "/js/jsx.js";
 @css`
   :host {
     display: block;
+    position: relative;
   }
   canvas {
     display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
   }
 `
 export default class GameCanvas extends CustomHTMLElement {
@@ -27,15 +32,22 @@ export default class GameCanvas extends CustomHTMLElement {
 
   ctx!: CanvasRenderingContext2D;
 
-  #height: number = 0;
+  #alt: number = 0;
   #scale: number = 1;
+
+  @prop("base")
+  base!: string;
+
+  private get axis() {
+    return this.base == "height" ? "height" : "width";
+  }
 
   get scale() {
     return this.#scale / devicePixelRatio;
   }
 
-  get height() {
-    return this.#height;
+  get alt() {
+    return this.#alt;
   }
 
   #resizeObserver = new ResizeObserver(
@@ -54,9 +66,10 @@ export default class GameCanvas extends CustomHTMLElement {
         width: `${rwidth}px`,
         height: `${rheight}px`,
       });
-      this.#height = height / width * 100;
+      this.#alt =
+        this.axis == "width" ? (height / width) * 100 : (width / height) * 100;
       Object.assign(this.canvas, { width, height });
-      this.#scale = width / 100;
+      this.#scale = (this.axis == "width" ? width : height) / 100;
     }
   );
 

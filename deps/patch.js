@@ -5,6 +5,7 @@ function* flatten(value) {
   if (Symbol.iterator in value) for (const item of value) yield* flatten(item);
   else yield value;
 }
+window.AudioContext ??= window.webkitAudioContext;
 Object.assign(GeneratorPrototype, {
   *map(callback) {
     for (const item of this) yield callback(item);

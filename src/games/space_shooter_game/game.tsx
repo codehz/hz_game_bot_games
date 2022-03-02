@@ -241,7 +241,7 @@ export class GameContentInner extends CustomHTMLElement {
       this.#world.resource.ghost_target.x += dx;
       this.#world.resource.ghost_target.y += dy;
     }
-    this.#world.resource.height_limit = this.canvas.height;
+    this.#world.resource.height_limit = this.canvas.alt;
 
     this.#player_shape();
     this.#player_movement();

@@ -142,7 +142,6 @@ export default class World<
     },
     set: (target, key, value) => {
       if (typeof key == "symbol") return false;
-      console.assert(value != null);
       if (value == null) {
         if (key in target) {
           Reflect.deleteProperty(target, key);
@@ -150,7 +149,7 @@ export default class World<
             view.remove_component(target, key);
           return true;
         }
-        return false;
+        return true;
       } else {
         const skipUpdate = key in target;
         Reflect.set(target, key, value);
