@@ -128,7 +128,6 @@ class GameInstance extends CustomHTMLElement {
 
   constructor() {
     super();
-    console.log("create");
     this.#world.on("score", (delta: number) => {
       this.score += delta;
       this.#sound.play(150, 150, 0.5);
