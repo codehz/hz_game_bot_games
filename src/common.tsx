@@ -704,18 +704,12 @@ export class PageSelector extends CustomHTMLElement {
   }
 `
 export class SizedContainer extends CustomHTMLElement {
-  #observer = new ResizeObserver(
-    ([
-      {
-        borderBoxSize: [{ inlineSize: width, blockSize: height }],
-      },
-    ]) => {
-      this.style.setProperty("--width", width + "px");
-      this.style.setProperty("--height", height + "px");
-    }
-  );
   @id("sensor")
   sensor!: HTMLDivElement;
+  #observer = new ResizeObserver(() => {
+    this.style.setProperty("--width", this.sensor.offsetWidth + "px");
+    this.style.setProperty("--height", this.sensor.offsetHeight + "px");
+  });
 
   @mount
   mount() {

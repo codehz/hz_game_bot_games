@@ -112,7 +112,7 @@ export default class World<
 
   constructor(resource: R) {
     super();
-    this.#resource = structuredClone(resource);
+    this.#resource = resource;
   }
 
   get resource() {

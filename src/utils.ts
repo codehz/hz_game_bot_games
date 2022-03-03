@@ -50,11 +50,11 @@ export class Timer {
   }
 }
 
-export function* range(to: number) {
-  for (let i = 0; i < to; i++) yield i;
+export function* range(to: number, from: number = 0) {
+  for (let i = from; i < to; i++) yield i;
 }
 
-export function randomSelect<T>(arr: T[]): T {
+export function randomSelect<T>(arr: readonly T[]): T {
   return arr[(Math.random() * arr.length) | 0];
 }
 
