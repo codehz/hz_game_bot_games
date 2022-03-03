@@ -22,7 +22,7 @@
     if (!("adoptedStyleSheets" in document)) await import("/deps/css.js");
     try {
       await import("/deps/patch.js");
-      await import("/js/mock.js");
+      await import("/js/index.js");
     } catch (e) {
       reportError(e);
     }
