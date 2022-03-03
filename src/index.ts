@@ -36,7 +36,15 @@ if (location.pathname.includes("mock")) {
   ];
 } else {
   score = (score: number) => reqeust("SCORE", score + "");
-  const { game } = getData<{ game: string }>();
-  const [name, ver] = game.split(/_game_?/, 2);
-  import(`./games/${name}_game/index.js?${ver ?? ""}`).catch(reportError);
+  (async () => {
+    const { game } = getData<{ game: string }>();
+    const [name, ver] = game.split(/_game_?/, 2);
+    try {
+      await import(`./games/${name}_game/index.js?${ver ?? ""}`);
+    } catch (e) {
+      throw new Error(`Failed to load game ${JSON.stringify(name)} (${game})`, {
+        cause: e as Error,
+      });
+    }
+  })().catch(reportError);
 }

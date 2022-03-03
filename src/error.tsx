@@ -12,7 +12,7 @@ import jsx from "/js/jsx.js";
 )
 @css`
   span {
-    white-space: pre-wrap
+    white-space: pre-wrap;
   }
 `
 class ErrorDialog extends CustomHTMLElement {
@@ -26,9 +26,17 @@ class ErrorDialog extends CustomHTMLElement {
 
 const dialog = document.getElementById("error-dialog") as ErrorDialog;
 
+function dumpError(e: Error) {
+  let msg = e.stack ?? e.message;
+  if (e.cause) {
+    msg += "\n" + dumpError(e.cause);
+  }
+  return msg;
+}
+
 export default function reportError(e: any) {
   if (e instanceof Error) {
     console.error(e);
-    dialog.show(e.stack ?? e.message);
+    dialog.show(dumpError(e));
   } else dialog.show(e + "");
 }
