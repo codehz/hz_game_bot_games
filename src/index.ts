@@ -1,4 +1,5 @@
 import { reqeust, getData } from "./utils.js";
+import reportError from "/js/error.js";
 
 export type User = {
   id: number;
@@ -37,5 +38,5 @@ if (location.pathname.includes("mock")) {
   score = (score: number) => reqeust("SCORE", score + "");
   const { game } = getData<{ game: string }>();
   const [name, ver] = game.split(/_game_?/, 2);
-  import(`./games/${name}_game/index.js?${ver ?? ""}`);
+  import(`./games/${name}_game/index.js?${ver ?? ""}`).catch(reportError);
 }

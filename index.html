@@ -20,8 +20,12 @@
   <script type="module">
     import reportError from "/js/error.js";
     if (!("adoptedStyleSheets" in document)) await import("/deps/css.js");
-    await import("/deps/patch.js");
-    await import("/js/index.js").catch(reportError);
+    try {
+      await import("/deps/patch.js");
+      await import("/js/mock.js");
+    } catch (e) {
+      reportError(e);
+    }
   </script>
   <title>Document</title>
 </head>
