@@ -128,18 +128,20 @@ class GameInstance extends CustomHTMLElement {
 
   @attach("frame", "#canvas")
   render(ctx: CanvasRenderingContext2D) {
-    ctx.save();
-    if (this.pause) ctx.filter = "blur(10px)";
     this.#render_playground(ctx);
     this.#render_debug_maps(ctx);
     this.#render_player(ctx);
     this.#render_bonus(ctx);
     this.#render_ball(ctx);
     this.#render_score(ctx);
-    ctx.restore();
     if (this.pause) {
       this.#render_pause(ctx);
     }
+  }
+
+  @listen_external("blur", window)
+  on_blur() {
+    this.pause = true;
   }
 
   @listen_external("keydown", window)

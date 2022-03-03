@@ -130,11 +130,11 @@ export const pause = makePureSystem(function (ctx: CanvasRenderingContext2D) {
     ctx.measureText(txt);
   ctx.fillRect(
     50 - width / 2 - 5,
-    50 - actualBoundingBoxAscent - 3,
+    80 - actualBoundingBoxAscent - 3,
     width + 10,
     actualBoundingBoxAscent + actualBoundingBoxDescent + 6
   );
   ctx.fillStyle = "white";
-  ctx.fillText("paused", 50, 50);
+  ctx.fillText("paused", 50, 80);
   ctx.restore();
 });
