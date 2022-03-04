@@ -174,6 +174,7 @@ export class FieldSet extends CustomHTMLElement {
       <h2 id="title" />
       <slot />
       <div class="bottombar">
+        <slot name="bottom" />
         <StyledButton id="cancel">取消</StyledButton>
         <StyledButton id="confirm">确认</StyledButton>
         <StyledButton id="close">关闭</StyledButton>
@@ -222,7 +223,7 @@ export class FieldSet extends CustomHTMLElement {
     box-sizing: border-box;
   }
 
-  slot {
+  slot:not([name]) {
     display: flex;
     flex-direction: column;
     overflow-y: auto;

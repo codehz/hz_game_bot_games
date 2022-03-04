@@ -256,7 +256,7 @@ class GameInstance extends CustomHTMLElement {
       </thead>
       <tbody id="list" />
     </table>
-    <StyledButton id="share">分享</StyledButton>
+    <StyledButton slot="bottom" id="share">分享</StyledButton>
   </DialogForm>
 )
 @css`
