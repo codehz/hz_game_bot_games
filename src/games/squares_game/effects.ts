@@ -57,6 +57,7 @@ export function bonus() {
       },
     ],
   });
+  navigator.vibrate(10);
 }
 
 export function gameover() {
