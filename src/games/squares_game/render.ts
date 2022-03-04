@@ -89,8 +89,8 @@ export const ball = makeSystem(
       let cellsize = innercell;
 
       if (o.explode_step != undefined) {
-        cellsize *= 1.2 ** (10 - o.explode_step);
-        ctx.globalAlpha = o.explode_step / 10;
+        cellsize *= 1.2 ** (20 - o.explode_step);
+        ctx.globalAlpha = (o.explode_step / 20) ** 0.5;
         if (--o.explode_step <= 0) {
           this.defer_remove(o);
         }

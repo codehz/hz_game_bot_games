@@ -64,12 +64,15 @@ export const player_track = makeSystem(
   }
 );
 
-export const ball_move = makeSystem(["position", "speed"], function (view) {
-  for (const o of view) {
-    o.position += o.speed;
-    if (Math.abs(o.position) > 55) this.defer_remove(o);
+export const ball_move = makeSystem(
+  ["position", "speed", "-explode_step"],
+  function (view) {
+    for (const o of view) {
+      o.position += o.speed;
+      if (Math.abs(o.position) > 55) this.defer_remove(o);
+    }
   }
-});
+);
 
 export const ball_track = makeSystem(
   ["axis", "track", "position", "-explode_step"],
@@ -91,7 +94,7 @@ export const ball_track = makeSystem(
         if (Math.abs(y) > limit) continue;
       }
       if (this.resource.playermap.get(x, y)) {
-        this.defer_update(o, { explode_step: 10 });
+        this.defer_update(o, { explode_step: 20 });
       }
       this.resource.ballmap.put(x, y);
     }
