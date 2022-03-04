@@ -101,7 +101,7 @@ function openProtoUrl(url) {
   return true;
 }
 
-window.TelegramGameProxy = {
+window.TelegramGameProxy ??= {
   initParams: initParams,
   receiveEvent: receiveEvent,
   onEvent: onEvent,
