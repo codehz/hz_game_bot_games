@@ -5,7 +5,7 @@ export const playground = makePureSystem(function (
 ) {
   let size = this.resource.cell_size * this.resource.grid_size + 1;
   if (this.resource.expand_step > 0) {
-    size *= 1 + (this.resource.expand_step--) / 10 * 0.2;
+    size *= 1 + (this.resource.expand_step-- / 10) * 0.2;
   }
   ctx.save();
   ctx.strokeStyle = "white";
@@ -68,7 +68,7 @@ export const bonus = makePureSystem(function (ctx: CanvasRenderingContext2D) {
   if (this.resource.bonus_step > 0) {
     this.resource.bonus_step--;
   }
-  const innercell = cell * 0.4 * (10 - this.resource.bonus_step) / 10;
+  const innercell = (cell * 0.4 * (10 - this.resource.bonus_step)) / 10;
   ctx.save();
   ctx.fillStyle = "lime";
   for (const { x, y } of this.resource.bonusmap) {
@@ -138,22 +138,22 @@ export const score = makePureSystem(function (ctx: CanvasRenderingContext2D) {
 });
 
 export const pause = makePureSystem(function (ctx: CanvasRenderingContext2D) {
-  const txt = "paused";
+  const txt = "方向键或者滑动屏幕控制";
   ctx.save();
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = "16px monospace";
+  ctx.font = "6px monospace";
   ctx.fillStyle = "black";
   ctx.globalAlpha = 0.7;
   const { width, actualBoundingBoxAscent, actualBoundingBoxDescent } =
     ctx.measureText(txt);
   ctx.fillRect(
-    50 - width / 2 - 5,
-    80 - actualBoundingBoxAscent - 3,
-    width + 10,
-    actualBoundingBoxAscent + actualBoundingBoxDescent + 6
+    50 - width / 2 - 2,
+    80 - actualBoundingBoxAscent - 1,
+    width + 4,
+    actualBoundingBoxAscent + actualBoundingBoxDescent + 2
   );
   ctx.fillStyle = "white";
-  ctx.fillText("paused", 50, 80);
+  ctx.fillText(txt, 50, 80);
   ctx.restore();
 });
