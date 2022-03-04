@@ -66,6 +66,7 @@ class GameInstance extends CustomHTMLElement {
     playermap: new MineMap(3),
     ballmap: new MineMap(3),
     bonusmap: new MineMap(3),
+    bonus_step: 0,
   });
 
   #logic_player_move = logic.player_move(this.#world);
@@ -127,6 +128,7 @@ class GameInstance extends CustomHTMLElement {
       const y = randomSelect(range(limit + 1, -limit).toArray());
       if (this.#world.resource.playermap.get(x, y)) continue;
       this.#world.resource.bonusmap.put(x, y);
+      this.#world.resource.bonus_step = 10;
       break;
     }
   }

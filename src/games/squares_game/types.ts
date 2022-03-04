@@ -96,6 +96,8 @@ export interface Resource {
   ballmap: MineMap;
   bonusmap: MineMap;
 
+  bonus_step: number;
+
   event_move?: Direction;
 }
 

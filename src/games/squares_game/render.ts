@@ -62,7 +62,10 @@ export const player = makeSystem(
 
 export const bonus = makePureSystem(function (ctx: CanvasRenderingContext2D) {
   const cell = this.resource.cell_size;
-  const innercell = cell * 0.4;
+  if (this.resource.bonus_step > 0) {
+    this.resource.bonus_step--;
+  }
+  const innercell = cell * 0.4 * (10 - this.resource.bonus_step) / 10;
   ctx.save();
   ctx.fillStyle = "lime";
   for (const { x, y } of this.resource.bonusmap) {
