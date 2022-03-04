@@ -67,6 +67,7 @@ class GameInstance extends CustomHTMLElement {
     ballmap: new MineMap(3),
     bonusmap: new MineMap(3),
     bonus_step: 0,
+    expand_step: 0,
   });
 
   #logic_player_move = logic.player_move(this.#world);
@@ -114,6 +115,7 @@ class GameInstance extends CustomHTMLElement {
         effects.crash();
       }
       this.#world.resource.score = 0;
+      this.#world.resource.expand_step = 10;
     });
   }
 

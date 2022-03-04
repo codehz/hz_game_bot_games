@@ -3,7 +3,10 @@ import { makePureSystem, makeSystem } from "./types.js";
 export const playground = makePureSystem(function (
   ctx: CanvasRenderingContext2D
 ) {
-  const size = this.resource.cell_size * this.resource.grid_size + 1;
+  let size = this.resource.cell_size * this.resource.grid_size + 1;
+  if (this.resource.expand_step > 0) {
+    size *= 1 + (this.resource.expand_step--) / 10 * 0.2;
+  }
   ctx.save();
   ctx.strokeStyle = "white";
   ctx.lineWidth = 1.5;

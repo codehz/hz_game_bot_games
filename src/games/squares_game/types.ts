@@ -98,6 +98,7 @@ export interface Resource {
   bonusmap: MineMap;
 
   bonus_step: number;
+  expand_step: number;
 
   event_move?: Direction;
 }
