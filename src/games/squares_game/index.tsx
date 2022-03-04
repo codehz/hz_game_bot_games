@@ -248,6 +248,7 @@ class GameInstance extends CustomHTMLElement {
 
   @listen_external("touchmove", window)
   on_touchmove(e: TouchEvent) {
+    if (this.blocked || this.pause) return;
     if (this.#touch) {
       const target = [...e.changedTouches].find(
         ({ identifier }) => identifier == this.#touch!.identifier
