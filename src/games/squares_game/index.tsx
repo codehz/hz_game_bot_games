@@ -36,6 +36,8 @@ class GameInstance extends CustomHTMLElement {
   pause: boolean = true;
   blocked: boolean = false;
 
+  #touch?: { x: number; y: number; identifier: number };
+
   #world = new World<Components, Resource>({
     score: 0,
     max_score: 0,
@@ -167,6 +169,62 @@ class GameInstance extends CustomHTMLElement {
       case "Escape":
         this.pause = true;
         break;
+    }
+  }
+
+  @listen_external("touchstart", window)
+  on_touchstart(e: TouchEvent) {
+    if (this.blocked) return;
+    this.pause = false;
+    const touch = e.touches[0];
+    this.#touch = {
+      x: touch.clientX,
+      y: touch.clientY,
+      identifier: touch.identifier,
+    };
+  }
+
+  @listen_external("touchcancel", window)
+  @listen_external("touchleave", window)
+  on_touchcancel(e: TouchEvent) {
+    if (this.#touch) {
+      if (
+        [...e.changedTouches].some(
+          ({ identifier }) => identifier == this.#touch!.identifier
+        )
+      ) {
+        this.#touch = undefined;
+      }
+    }
+  }
+
+  @listen_external("touchend", window)
+  on_touchend(e: TouchEvent) {
+    if (this.#touch) {
+      const target = [...e.changedTouches].find(
+        ({ identifier }) => identifier == this.#touch!.identifier
+      );
+      if (target) {
+        const dx = target.clientX - this.#touch.x;
+        const dy = target.clientY - this.#touch.y;
+        this.#touch = undefined;
+
+        if (dx ** 2 + dy ** 2 > 20 ** 2) {
+          if (dx > dy) {
+            if (dx > -dy) {
+              this.#world.resource.event_move = { x: 1, y: 0 };
+            } else {
+              this.#world.resource.event_move = { x: 0, y: -1 };
+            }
+          } else {
+            if (dx > -dy) {
+              this.#world.resource.event_move = { x: 0, y: 1 };
+            } else {
+              this.#world.resource.event_move = { x: -1, y: 0 };
+            }
+          }
+        }
+      }
     }
   }
 }
