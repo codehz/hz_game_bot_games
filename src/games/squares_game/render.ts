@@ -82,8 +82,20 @@ export const ball = makeSystem(
     const cell = this.resource.cell_size;
     const innercell = cell * 0.4;
     ctx.save();
-    ctx.fillStyle = "teal";
-    for (const { axis, track, position } of view) {
+    ctx.fillStyle = "#b71c1c";
+    for (const o of view) {
+      ctx.save();
+      const { axis, track, position } = o;
+      let cellsize = innercell;
+
+      if (o.explode_step != undefined) {
+        cellsize *= 1.2 ** (10 - o.explode_step);
+        ctx.globalAlpha = o.explode_step / 10;
+        if (--o.explode_step <= 0) {
+          this.defer_remove(o);
+        }
+      }
+
       let x: number;
       let y: number;
       if (axis == "x") {
@@ -93,9 +105,10 @@ export const ball = makeSystem(
         y = position;
         x = track * cell;
       }
-      const px = 50 + x - innercell / 2;
-      const py = 50 + y - innercell / 2;
-      ctx.fillRect(px, py, innercell, innercell);
+      const px = 50 + x - cellsize / 2;
+      const py = 50 + y - cellsize / 2;
+      ctx.fillRect(px, py, cellsize, cellsize);
+      ctx.restore();
     }
     ctx.restore();
   }

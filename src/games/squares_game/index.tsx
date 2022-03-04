@@ -168,6 +168,7 @@ class GameInstance extends CustomHTMLElement {
     this.#render_score(ctx);
     if (this.pause) {
       this.#render_pause(ctx);
+      this.#world.sync();
     }
   }
 

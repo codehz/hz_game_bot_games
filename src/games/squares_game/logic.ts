@@ -72,7 +72,7 @@ export const ball_move = makeSystem(["position", "speed"], function (view) {
 });
 
 export const ball_track = makeSystem(
-  ["axis", "track", "position"],
+  ["axis", "track", "position", "-explode_step"],
   function (view) {
     const cell = this.resource.cell_size;
     const limit = (this.resource.grid_size - 1) / 2;
@@ -91,8 +91,7 @@ export const ball_track = makeSystem(
         if (Math.abs(y) > limit) continue;
       }
       if (this.resource.playermap.get(x, y)) {
-        // TODO: animation
-        this.defer_remove(o);
+        this.defer_update(o, { explode_step: 10 });
       }
       this.resource.ballmap.put(x, y);
     }

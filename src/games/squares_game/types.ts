@@ -23,6 +23,7 @@ export interface Components {
   track: number;
   position: number;
   speed: number;
+  explode_step: number;
 
   shake: {
     direction: Direction;
