@@ -19,7 +19,7 @@ import { Components, MineMap, Resource } from "./types.js";
 import * as render from "./render.js";
 import * as logic from "./logic.js";
 import * as effects from "./effects.js";
-import { randomSelect, range } from "/js/utils.js";
+import { minmax, randomSelect, range } from "/js/utils.js";
 import * as index from "/js/index.js";
 
 const bgm = new Audio("/assets/squares_game/bgm.mp3");
@@ -48,8 +48,11 @@ class GameInstance extends CustomHTMLElement {
     return bgm.paused;
   }
   set pause(value) {
-    if (value) bgm.pause();
-    else bgm.play().catch();
+    if (value) {
+      bgm.pause();
+      this.normalize_position();
+    }
+    else if (bgm.paused) bgm.play().catch();
   }
   blocked: boolean = false;
 
@@ -68,7 +71,12 @@ class GameInstance extends CustomHTMLElement {
     bonusmap: new MineMap(3),
     bonus_step: 0,
     expand_step: 0,
+    target_position: { x: 0, y: 0 },
   });
+
+  get resource() {
+    return this.#world.resource;
+  }
 
   #logic_player_move = logic.player_move(this.#world);
   #logic_player_track = logic.player_track(this.#world);
@@ -81,6 +89,7 @@ class GameInstance extends CustomHTMLElement {
   #render_player = render.player(this.#world);
   #render_bonus = render.bonus(this.#world);
   #render_ball = render.ball(this.#world);
+  #render_track = render.track(this.#world);
   #render_score = render.score(this.#world);
   #render_pause = render.pause(this.#world);
 
@@ -123,6 +132,11 @@ class GameInstance extends CustomHTMLElement {
     this.pause = false;
   }
 
+  normalize_position() {
+    this.resource.target_position.x = Math.round(this.resource.target_position.x);
+    this.resource.target_position.y = Math.round(this.resource.target_position.y);
+  }
+
   generate_bonus() {
     while (true) {
       const limit = (this.#world.resource.grid_size - 1) / 2;
@@ -157,7 +171,6 @@ class GameInstance extends CustomHTMLElement {
     this.#logic_ball_track();
     this.#logic_animate();
     this.#world.sync();
-    delete this.#world.resource.event_move;
   }
 
   @attach("frame", "#canvas")
@@ -167,6 +180,7 @@ class GameInstance extends CustomHTMLElement {
     this.#render_player(ctx);
     this.#render_bonus(ctx);
     this.#render_ball(ctx);
+    this.#render_track(ctx);
     this.#render_score(ctx);
     if (this.pause) {
       this.#render_pause(ctx);
@@ -182,21 +196,34 @@ class GameInstance extends CustomHTMLElement {
   @listen_external("keydown", window)
   on_keydown(e: KeyboardEvent) {
     if (e.repeat || this.blocked) return;
+    const limit = (this.resource.grid_size - 1) / 2;
     switch (e.code) {
       case "ArrowLeft":
-        this.#world.resource.event_move = { x: -1, y: 0 };
+        this.#world.resource.target_position.x = Math.max(
+          -limit,
+          this.#world.resource.target_position.x - 1
+        );
         this.resume();
         break;
       case "ArrowRight":
-        this.#world.resource.event_move = { x: 1, y: 0 };
+        this.#world.resource.target_position.x = Math.min(
+          limit,
+          this.#world.resource.target_position.x + 1
+        );
         this.resume();
         break;
       case "ArrowUp":
-        this.#world.resource.event_move = { x: 0, y: -1 };
+        this.#world.resource.target_position.y = Math.max(
+          -limit,
+          this.#world.resource.target_position.y - 1
+        );
         this.resume();
         break;
       case "ArrowDown":
-        this.#world.resource.event_move = { x: 0, y: 1 };
+        this.#world.resource.target_position.y = Math.min(
+          limit,
+          this.#world.resource.target_position.y + 1
+        );
         this.resume();
         break;
       case "Escape":
@@ -209,6 +236,8 @@ class GameInstance extends CustomHTMLElement {
   on_touchstart(e: TouchEvent) {
     if (this.blocked) return;
     this.resume();
+    if (this.pause) return;
+    this.normalize_position();
     const touch = e.touches[0];
     this.#touch = {
       x: touch.clientX,
@@ -224,28 +253,22 @@ class GameInstance extends CustomHTMLElement {
         ({ identifier }) => identifier == this.#touch!.identifier
       );
       if (target) {
-        const dx = target.clientX - this.#touch.x;
-        const dy = target.clientY - this.#touch.y;
-
-        if (dx ** 2 + dy ** 2 > (this.canvas.clientWidth / 9) ** 2) {
-          if (dx > dy) {
-            if (dx > -dy) {
-              this.#touch.x = target.clientX;
-              this.#world.resource.event_move = { x: 1, y: 0 };
-            } else {
-              this.#touch.y = target.clientY;
-              this.#world.resource.event_move = { x: 0, y: -1 };
-            }
-          } else {
-            if (dx > -dy) {
-              this.#touch.y = target.clientY;
-              this.#world.resource.event_move = { x: 0, y: 1 };
-            } else {
-              this.#touch.x = target.clientX;
-              this.#world.resource.event_move = { x: -1, y: 0 };
-            }
-          }
-        }
+        const limit = this.resource.grid_size / 2 - 0.2;
+        const scale = this.canvas.scale * this.resource.cell_size;
+        const dx = (target.clientX - this.#touch.x) / scale;
+        const dy = (target.clientY - this.#touch.y) / scale;
+        this.#touch.x = target.clientX;
+        this.#touch.y = target.clientY;
+        this.#world.resource.target_position.x = minmax(
+          this.#world.resource.target_position.x + dx,
+          -limit,
+          limit
+        );
+        this.#world.resource.target_position.y = minmax(
+          this.#world.resource.target_position.y + dy,
+          -limit,
+          limit
+        );
       }
     }
   }

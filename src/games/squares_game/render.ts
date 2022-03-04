@@ -137,6 +137,19 @@ export const score = makePureSystem(function (ctx: CanvasRenderingContext2D) {
   ctx.restore();
 });
 
+export const track = makePureSystem(function (ctx: CanvasRenderingContext2D) {
+  const cell = this.resource.cell_size;
+  const { x, y } = this.resource.target_position;
+  const innercell = cell * 0.2;
+  ctx.save();
+  ctx.fillStyle = "black";
+  ctx.globalAlpha = 0.2;
+  const px = 50 + x * cell - innercell / 2;
+  const py = 50 + y * cell - innercell / 2;
+  ctx.fillRect(px, py, innercell, innercell);
+  ctx.restore();
+});
+
 export const pause = makePureSystem(function (ctx: CanvasRenderingContext2D) {
   const txt = "方向键或者滑动屏幕控制";
   ctx.save();

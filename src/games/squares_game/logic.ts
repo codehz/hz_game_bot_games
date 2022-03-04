@@ -3,44 +3,25 @@ import { Components, makeSystem } from "./types.js";
 export const player_move = makeSystem(
   ["tag_player", "x", "y"],
   function (view) {
-    const { event_move, grid_size } = this.resource;
-    if (!event_move) return;
-    const limit = (grid_size - 1) / 2;
+    const target = this.resource.target_position;
+    const tx = Math.round(target.x);
+    const ty = Math.round(target.y);
+
     for (const o of view) {
-      let x = o.animate?.target?.x ?? o.x;
-      let y = o.animate?.target?.y ?? o.y;
-      x += event_move.x;
-      y += event_move.y;
-      let shake = false;
-      if (x < -limit) {
-        x = -limit;
-        shake = true;
-      } else if (x > limit) {
-        x = limit;
-        shake = true;
-      }
-      if (y < -limit) {
-        y = -limit;
-        shake = true;
-      } else if (y > limit) {
-        y = limit;
-        shake = true;
-      }
-      let updates: Partial<Components> | undefined;
-      if (o.x != x || o.y != y) {
-        updates = {};
-        updates.animate = { step: 5, target: { x, y } };
-      }
-      if (updates?.animate == null) {
-        if (shake) {
-          updates ??= {};
-          updates.shake = { direction: event_move, step: 5 };
+      if (o.x != tx) {
+        if (Math.abs(o.x - tx) < 0.15) {
+          o.x = tx;
+        } else {
+          o.x += Math.sign(tx - o.x) * 0.1;
         }
-      } else if (o.shake) {
-        updates ??= {};
-        updates.shake = undefined;
       }
-      if (updates) this.defer_update(o, updates);
+      if (o.y != ty) {
+        if (Math.abs(o.y - ty) < 0.15) {
+          o.y = ty;
+        } else {
+          o.y += Math.sign(ty - o.y) * 0.1;
+        }
+      }
     }
   }
 );

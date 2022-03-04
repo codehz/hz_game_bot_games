@@ -15,6 +15,10 @@ export type Direction = {
   x: -1 | 0 | 1;
   y: -1 | 0 | 1;
 };
+export type Vec2 = {
+  x: number;
+  y: number;
+};
 
 export interface Components {
   x: number;
@@ -100,7 +104,7 @@ export interface Resource {
   bonus_step: number;
   expand_step: number;
 
-  event_move?: Direction;
+  target_position: Vec2;
 }
 
 export type TaggableComponents<S extends string = string> = Components &
