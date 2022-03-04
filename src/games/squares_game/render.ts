@@ -77,7 +77,7 @@ export const ball = makeSystem(
   ["axis", "track", "position"],
   function (view, ctx: CanvasRenderingContext2D) {
     const cell = this.resource.cell_size;
-    const innercell = cell * 0.5;
+    const innercell = cell * 0.4;
     ctx.save();
     ctx.fillStyle = "teal";
     for (const { axis, track, position } of view) {
