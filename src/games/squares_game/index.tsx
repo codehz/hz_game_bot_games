@@ -227,7 +227,7 @@ class GameInstance extends CustomHTMLElement {
         const dx = target.clientX - this.#touch.x;
         const dy = target.clientY - this.#touch.y;
 
-        if (dx ** 2 + dy ** 2 > (this.canvas.clientWidth / 6) ** 2) {
+        if (dx ** 2 + dy ** 2 > (this.canvas.clientWidth / 9) ** 2) {
           if (dx > dy) {
             if (dx > -dy) {
               this.#touch.x = target.clientX;
