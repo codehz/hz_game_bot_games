@@ -16,6 +16,7 @@ import { DialogForm, SizedContainer, StyledButton } from "/js/common.js";
 import { Components, MineMap, Resource } from "./types.js";
 import * as render from "./render.js";
 import * as logic from "./logic.js";
+import * as effects from "./effects.js";
 import { randomSelect, range } from "/js/utils.js";
 import * as index from "/js/index.js";
 
@@ -86,6 +87,7 @@ class GameInstance extends CustomHTMLElement {
     this.#world.on("bonus", () => {
       this.generate_bonus();
       this.#world.resource.score++;
+      effects.bonus();
     });
     this.#world.on("crash", () => {
       if (this.#world.resource.score > this.#world.resource.max_score) {
@@ -99,6 +101,9 @@ class GameInstance extends CustomHTMLElement {
             composed: true,
           })
         );
+        effects.gameover();
+      } else {
+        effects.crash();
       }
       this.#world.resource.score = 0;
     });
