@@ -19,6 +19,9 @@ import * as logic from "./logic.js";
 import { randomSelect, range } from "/js/utils.js";
 import * as index from "/js/index.js";
 
+const bgm = new Audio("/assets/squares_game/bgm.mp3");
+bgm.loop = true;
+
 @customElement("game-instance")
 @shadow(<GameCanvas id="canvas" />)
 @css`
@@ -33,7 +36,13 @@ import * as index from "/js/index.js";
   }
 `
 class GameInstance extends CustomHTMLElement {
-  pause: boolean = true;
+  get pause() {
+    return bgm.paused;
+  }
+  set pause(value) {
+    if (value) bgm.pause();
+    else bgm.play().catch();
+  }
   blocked: boolean = false;
 
   #touch?: { x: number; y: number; identifier: number };
@@ -93,6 +102,10 @@ class GameInstance extends CustomHTMLElement {
       }
       this.#world.resource.score = 0;
     });
+  }
+
+  resume() {
+    this.pause = false;
   }
 
   generate_bonus() {
@@ -155,19 +168,19 @@ class GameInstance extends CustomHTMLElement {
     switch (e.code) {
       case "ArrowLeft":
         this.#world.resource.event_move = { x: -1, y: 0 };
-        this.pause = false;
+        this.resume();
         break;
       case "ArrowRight":
         this.#world.resource.event_move = { x: 1, y: 0 };
-        this.pause = false;
+        this.resume();
         break;
       case "ArrowUp":
         this.#world.resource.event_move = { x: 0, y: -1 };
-        this.pause = false;
+        this.resume();
         break;
       case "ArrowDown":
         this.#world.resource.event_move = { x: 0, y: 1 };
-        this.pause = false;
+        this.resume();
         break;
       case "Escape":
         this.pause = true;
@@ -178,7 +191,7 @@ class GameInstance extends CustomHTMLElement {
   @listen_external("touchstart", window)
   on_touchstart(e: TouchEvent) {
     if (this.blocked) return;
-    this.pause = false;
+    this.resume();
     const touch = e.touches[0];
     this.#touch = {
       x: touch.clientX,
