@@ -1,3 +1,5 @@
+import "/js/sound.js";
+
 import jsx from "/js/jsx.js";
 import World from "/js/ecs.js";
 import GameCanvas from "/js/canvas.js";
@@ -22,6 +24,11 @@ import * as index from "/js/index.js";
 
 const bgm = new Audio("/assets/squares_game/bgm.mp3");
 bgm.loop = true;
+
+await new Promise<void>((resolve, reject) => {
+  bgm.addEventListener("error", reject);
+  bgm.addEventListener("canplay", () => resolve());
+});
 
 @customElement("game-instance")
 @shadow(<GameCanvas id="canvas" />)
@@ -256,7 +263,9 @@ class GameInstance extends CustomHTMLElement {
       </thead>
       <tbody id="list" />
     </table>
-    <StyledButton slot="bottom" id="share">分享</StyledButton>
+    <StyledButton slot="bottom" id="share">
+      分享
+    </StyledButton>
   </DialogForm>
 )
 @css`
